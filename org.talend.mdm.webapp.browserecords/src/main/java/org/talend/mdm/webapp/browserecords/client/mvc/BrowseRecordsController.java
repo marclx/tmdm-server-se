@@ -217,7 +217,7 @@ public class BrowseRecordsController extends Controller {
                         }
 
                         // ItemsListPanel need to refresh when only isOutMost = false and isHierarchyCall = false
-                        if (!detailToolBar.isOutMost() && !detailToolBar.isHierarchyCall()) {
+                        if (!detailToolBar.isOutMost() && !detailToolBar.isHierarchyCall() && !detailToolBar.isFkToolBar()) {
                             if (ItemsListPanel.getInstance().getCurrentQueryModel() != null
                                     && ItemsListPanel.getInstance().getCurrentQueryModel().getModel().getConceptName()
                                             .equals(itemBean.getConcept())) {
