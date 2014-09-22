@@ -1,0 +1,15 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <xsd:import namespace="http://www.w3.org/2001/XMLSchema"/>
+    <xsd:element name="Type1">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="id" type="xsd:string"/>
+                <xsd:element name="value1" type="xsd:string"/>
+            </xsd:sequence>
+        </xsd:complexType>
+        <xsd:unique name="Type1">
+            <xsd:selector xpath="."/>
+            <xsd:field xpath="id"/>
+        </xsd:unique>
+    </xsd:element>
+</xsd:schema>
