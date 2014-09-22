@@ -1,0 +1,13 @@
+{
+    "select": {
+        "from": ["Type1"],
+        "fields": [
+            { "field": { "name": "Type1/id" } },
+            { "alias": [
+                    { "name": "a" },
+                    { "field": { "name": "Type1/id" } }
+              ]
+            }
+        ]
+    }
+}

@@ -5,24 +5,22 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.talend.mdm.commmon.metadata.MetadataRepository;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 
 /**
  *
  */
 public class QueryParser {
 
-    private final MetadataRepository repository;
+    private final GsonBuilder builder;
 
     private QueryParser(MetadataRepository repository) {
-        this.repository = repository;
+        builder = new GsonBuilder();
+        builder.registerTypeAdapter(Expression.class, new Deserializer(repository));
     }
 
     public static QueryParser newParser(MetadataRepository repository) {
-        if(repository == null) {
+        if (repository == null) {
             throw new IllegalArgumentException("Metadata repository cannot be null.");
         }
         return new QueryParser(repository);
@@ -43,11 +41,14 @@ public class QueryParser {
         if (query == null) {
             throw new IllegalArgumentException("Query cannot be null.");
         }
-        GsonBuilder builder = new GsonBuilder();
-        Deserializer deserializer = new Deserializer(repository);
-        builder.registerTypeAdapter(Expression.class, deserializer);
-        Gson gson = builder.create();
-        return gson.fromJson(new InputStreamReader(query), Expression.class);
+        return parse(new InputStreamReader(query));
+    }
+    
+    public Expression parse(Reader query) {
+        if (query == null) {
+            throw new IllegalArgumentException("Query cannot be null.");
+        }
+        return builder.create().fromJson(query, Expression.class);
     }
 
 }

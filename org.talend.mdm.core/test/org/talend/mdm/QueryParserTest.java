@@ -6,6 +6,8 @@ import org.talend.mdm.commmon.metadata.MetadataRepository;
 import org.talend.mdm.query.QueryParser;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -111,5 +113,65 @@ public class QueryParserTest extends TestCase {
         Select select = (Select) expression;
         assertEquals(1, select.getSelectedFields().size());
         assertEquals(Field.class, select.getSelectedFields().get(0).getClass());
+    }
+    
+    public void testQuery7() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query7.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        assertEquals(2, select.getSelectedFields().size());
+        assertEquals(Field.class, select.getSelectedFields().get(0).getClass());
+        assertEquals(Alias.class, select.getSelectedFields().get(1).getClass());
+    }
+    
+    public void testQuery8() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query8.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        Condition condition = select.getCondition();
+        final List<Predicate> metPredicates = new ArrayList<Predicate>();
+        condition.accept(new VisitorAdapter<Object>() {
+            @Override
+            public Object visit(BinaryLogicOperator condition) {
+                condition.getLeft().accept(this);
+                condition.getRight().accept(this);
+                return null;
+            }
+
+            @Override
+            public Object visit(UnaryLogicOperator condition) {
+                condition.getCondition().accept(this);
+                return null;
+            }
+
+            @Override
+            public Object visit(Compare condition) {
+                metPredicates.add(condition.getPredicate());
+                return null;
+            }
+        });
+        assertEquals(7, metPredicates.size());
+        assertTrue(metPredicates.contains(Predicate.EQUALS));
+        assertTrue(metPredicates.contains(Predicate.GREATER_THAN));
+        assertTrue(metPredicates.contains(Predicate.GREATER_THAN_OR_EQUALS));
+        assertTrue(metPredicates.contains(Predicate.LOWER_THAN));
+        assertTrue(metPredicates.contains(Predicate.LOWER_THAN_OR_EQUALS));
+        assertTrue(metPredicates.contains(Predicate.CONTAINS));
+        assertTrue(metPredicates.contains(Predicate.STARTS_WITH));
+    }
+    
+    public void testQuery9() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query9.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        Condition condition = select.getCondition();
+        assertNotNull(condition);
+        assertEquals(UnaryLogicOperator.class, condition.getClass());
+        assertEquals(Predicate.NOT, ((UnaryLogicOperator) condition).getPredicate());
+        assertEquals(Compare.class, ((UnaryLogicOperator) condition).getCondition().getClass());
+        assertEquals(Field.class, ((Compare) ((UnaryLogicOperator) condition).getCondition()).getLeft().getClass());
     }
 }
