@@ -1,7 +1,6 @@
 package org.talend.mdm.query;
 
 import com.amalto.core.query.user.Expression;
-import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.talend.mdm.commmon.metadata.MetadataRepository;
 
@@ -43,7 +42,7 @@ public class QueryParser {
         }
         return parse(new InputStreamReader(query));
     }
-    
+
     public Expression parse(Reader query) {
         if (query == null) {
             throw new IllegalArgumentException("Query cannot be null.");

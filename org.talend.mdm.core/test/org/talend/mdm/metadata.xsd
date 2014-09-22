@@ -5,6 +5,16 @@
             <xsd:sequence>
                 <xsd:element name="id" type="xsd:string"/>
                 <xsd:element name="value1" type="xsd:string"/>
+                <xsd:element name="fk2" type="xsd:string">
+                    <xsd:annotation>
+                        <xsd:appinfo source="X_ForeignKey">Type2</xsd:appinfo>
+                    </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="fk3" type="xsd:string">
+                    <xsd:annotation>
+                        <xsd:appinfo source="X_ForeignKey">Type3</xsd:appinfo>
+                    </xsd:annotation>
+                </xsd:element>
             </xsd:sequence>
         </xsd:complexType>
         <xsd:unique name="Type1">
@@ -12,4 +22,29 @@
             <xsd:field xpath="id"/>
         </xsd:unique>
     </xsd:element>
+    <xsd:element name="Type2">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="id" type="xsd:string"/>
+                <xsd:element name="value1" type="xsd:string"/>
+            </xsd:sequence>
+        </xsd:complexType>
+        <xsd:unique name="Type2">
+            <xsd:selector xpath="."/>
+            <xsd:field xpath="id"/>
+        </xsd:unique>
+    </xsd:element>
+    <xsd:element name="Type3">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="id" type="xsd:string"/>
+                <xsd:element name="value1" type="xsd:string"/>
+            </xsd:sequence>
+        </xsd:complexType>
+        <xsd:unique name="Type3">
+            <xsd:selector xpath="."/>
+            <xsd:field xpath="id"/>
+        </xsd:unique>
+    </xsd:element>
+
 </xsd:schema>

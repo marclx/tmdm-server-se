@@ -174,4 +174,14 @@ public class QueryParserTest extends TestCase {
         assertEquals(Compare.class, ((UnaryLogicOperator) condition).getCondition().getClass());
         assertEquals(Field.class, ((Compare) ((UnaryLogicOperator) condition).getCondition()).getLeft().getClass());
     }
+
+    public void testQuery10() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query10.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        assertEquals(2, select.getJoins().size());
+        assertEquals("fk2", select.getJoins().get(0).getLeftField().getFieldMetadata().getName());
+        assertEquals("fk3", select.getJoins().get(1).getLeftField().getFieldMetadata().getName());
+    }
 }

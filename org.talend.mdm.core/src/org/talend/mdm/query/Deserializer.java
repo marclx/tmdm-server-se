@@ -1,18 +1,18 @@
 package org.talend.mdm.query;
 
-import static com.amalto.core.query.user.UserQueryBuilder.alias;
-
-import java.lang.reflect.Type;
-
-import org.apache.commons.lang.NotImplementedException;
-import org.apache.commons.lang.StringUtils;
-import org.talend.mdm.commmon.metadata.ComplexTypeMetadata;
-import org.talend.mdm.commmon.metadata.MetadataRepository;
-
 import com.amalto.core.query.user.Expression;
 import com.amalto.core.query.user.Field;
 import com.amalto.core.query.user.UserQueryBuilder;
 import com.google.gson.*;
+import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.lang.StringUtils;
+import org.talend.mdm.commmon.metadata.ComplexTypeMetadata;
+import org.talend.mdm.commmon.metadata.FieldMetadata;
+import org.talend.mdm.commmon.metadata.MetadataRepository;
+
+import java.lang.reflect.Type;
+
+import static com.amalto.core.query.user.UserQueryBuilder.alias;
 
 class Deserializer implements JsonDeserializer<Expression> {
 
@@ -127,6 +127,19 @@ class Deserializer implements JsonDeserializer<Expression> {
                     }
                 }
             }
+            // Process joins (joins are optional)
+            if (select.has("joins")) { //$NON-NLS-1$
+                JsonArray fields = select.get("joins").getAsJsonArray(); //$NON-NLS-1$
+                for (int i = 0; i < fields.size(); i++) {
+                    JsonObject fieldElement = fields.get(i).getAsJsonObject();
+                    String joinLeft = fieldElement.get("from").getAsString();
+                    String joinRight = fieldElement.get("on").getAsString();
+                    FieldMetadata leftField = getField(repository, joinLeft).getFieldMetadata();
+                    FieldMetadata rightField = getField(repository, joinRight).getFieldMetadata();
+                    queryBuilder.join(leftField, rightField);
+                }
+            }
+
         } else {
             throw new IllegalArgumentException("Malformed query (expected a top level object).");
         }
