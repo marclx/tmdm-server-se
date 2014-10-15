@@ -184,4 +184,13 @@ public class QueryParserTest extends TestCase {
         assertEquals("fk2", select.getJoins().get(0).getLeftField().getFieldMetadata().getName());
         assertEquals("fk3", select.getJoins().get(1).getLeftField().getFieldMetadata().getName());
     }
+    
+    public void testQuery11() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query11.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        assertEquals(0, select.getPaging().getStart());
+        assertEquals(10, select.getPaging().getLimit());
+    }
 }

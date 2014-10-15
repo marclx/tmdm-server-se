@@ -139,7 +139,13 @@ class Deserializer implements JsonDeserializer<Expression> {
                     queryBuilder.join(leftField, rightField);
                 }
             }
-
+            // Process paging (optional)
+            if (select.has("start")) { //$NON-NLS-1$
+                queryBuilder.start(select.get("start").getAsInt()); //$NON-NLS-1$
+            }
+            if (select.has("limit")) { //$NON-NLS-1$
+                queryBuilder.limit(select.get("limit").getAsInt()); //$NON-NLS-1$
+            }
         } else {
             throw new IllegalArgumentException("Malformed query (expected a top level object).");
         }
