@@ -3,7 +3,10 @@
     "from": ["Type1"],
     "where": {
       "eq": {
-        "field": "Type1/id",
+        "index": [
+          {"field": "Type1/id"},
+          0
+        ],
         "value": "1"
       }
     }

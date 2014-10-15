@@ -1,0 +1,44 @@
+package org.talend.mdm.query;
+
+import com.amalto.core.query.user.Field;
+import com.amalto.core.query.user.TypedExpression;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import org.talend.mdm.commmon.metadata.MetadataRepository;
+
+import static com.amalto.core.query.user.UserQueryBuilder.index;
+
+class IndexProcessor implements TypedExpressionProcessor {
+
+    public static final TypedExpressionProcessor INSTANCE = new IndexProcessor();
+
+    private IndexProcessor() {
+    }
+
+    @Override
+    public TypedExpression process(JsonObject element, MetadataRepository repository) {
+        JsonArray index = element.get("index").getAsJsonArray(); //$NON-NLS-1$
+        TypedExpression expression = null;
+        int indexValue = -1;
+        for (int j = 0; j < index.size(); j++) {
+            JsonElement jsonElement = index.get(j);
+            if (jsonElement.isJsonObject()) {
+                JsonObject jsonObject = jsonElement.getAsJsonObject();
+                expression = Deserializer.getTypedExpression(jsonObject).process(jsonObject, repository);
+            } else if (jsonElement.isJsonPrimitive()) {
+                indexValue = jsonElement.getAsInt();
+            }
+        }
+        if (expression == null) {
+            throw new IllegalArgumentException("Malformed query (expected expression in '" + index + "'");
+        }
+        if (indexValue < 0) {
+            throw new IllegalArgumentException("Malformed query (expected 'index' in '" + index + "'");
+        }
+        if (!(expression instanceof Field)) {
+            throw new IllegalArgumentException("Malformed query (expected a field in expression)");
+        }
+        return index(((Field) expression).getFieldMetadata(), indexValue);
+    }
+}

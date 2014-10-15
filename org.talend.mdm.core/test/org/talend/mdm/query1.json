@@ -1,5 +1,5 @@
 {
-    "select": {
-        "from": ["Type1"]
-    }
+  "select": {
+    "from": ["Type1"]
+  }
 }

@@ -1,18 +1,15 @@
 package org.talend.mdm.query;
 
-import com.amalto.core.query.user.Expression;
-import com.amalto.core.query.user.Field;
-import com.amalto.core.query.user.UserQueryBuilder;
-import com.google.gson.*;
+import java.lang.reflect.Type;
+
+import com.amalto.core.query.user.*;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.talend.mdm.commmon.metadata.ComplexTypeMetadata;
 import org.talend.mdm.commmon.metadata.FieldMetadata;
 import org.talend.mdm.commmon.metadata.MetadataRepository;
 
-import java.lang.reflect.Type;
-
-import static com.amalto.core.query.user.UserQueryBuilder.alias;
+import com.google.gson.*;
 
 class Deserializer implements JsonDeserializer<Expression> {
 
@@ -25,6 +22,22 @@ class Deserializer implements JsonDeserializer<Expression> {
             throw new IllegalArgumentException("Repository cannot be null.");
         }
         this.repository = repository;
+    }
+
+    static TypedExpressionProcessor getTypedExpression(JsonObject object) {
+        if (object.has("field")) { //$NON-NLS-1$
+            return FieldProcessor.INSTANCE;
+        } else if (object.has("alias")) { //$NON-NLS-1$
+            return AliasProcessor.INSTANCE;
+        } else if (object.has("max")) { //$NON-NLS-1$
+            return MaxProcessor.INSTANCE;
+        } else if (object.has("min")) { //$NON-NLS-1$
+            return MinProcessor.INSTANCE;
+        } else if (object.has("index")) {
+            return IndexProcessor.INSTANCE;
+        } else {
+            throw new NotImplementedException("No support for '" + object + "'.");
+        }
     }
 
     static ConditionProcessor getProcessor(JsonObject object) {
@@ -48,6 +61,8 @@ class Deserializer implements JsonDeserializer<Expression> {
             return OrProcessor.INSTANCE;
         } else if (object.has("not")) { //$NON-NLS-1$
             return NotProcessor.INSTANCE;
+        } else if (object.has("is")) { //$NON-NLS-1$
+            return IsProcessor.INSTANCE;
         } else {
             throw new NotImplementedException("No support for '" + object + "'.");
         }
@@ -102,29 +117,8 @@ class Deserializer implements JsonDeserializer<Expression> {
                 JsonArray fields = select.get("fields").getAsJsonArray(); //$NON-NLS-1$
                 for (int i = 0; i < fields.size(); i++) {
                     JsonObject fieldElement = fields.get(i).getAsJsonObject();
-                    if (fieldElement.has("field")) { //$NON-NLS-1$
-                        String fieldName = fieldElement.get("field").getAsJsonObject().get("name").getAsString(); //$NON-NLS-1$ //$NON-NLS-2$
-                        queryBuilder.select(getField(repository, fieldName));
-                    } else if (fieldElement.has("alias")) { //$NON-NLS-1$
-                        JsonElement alias = fieldElement.get("alias"); //$NON-NLS-1$
-                        JsonArray array = alias.getAsJsonArray();
-                        String aliasName = null;
-                        String fieldName = null;
-                        for (int j = 0; j < array.size(); j++) {
-                            JsonObject item = array.get(j).getAsJsonObject();
-                            if (item.has("name")) { //$NON-NLS-1$
-                                aliasName = item.get("name").getAsString(); //$NON-NLS-1$
-                            } else if (item.has("field")) { //$NON-NLS-1$
-                                fieldName = item.get("field").getAsJsonObject().get("name").getAsString(); //$NON-NLS-1$ //$NON-NLS-2$
-                            }
-                        }
-                        if (aliasName == null || fieldName == null) {
-                            throw new IllegalArgumentException("Malformed query (field '" + alias + "' is malformed).");
-                        }
-                        queryBuilder.select(alias(getField(repository, fieldName), aliasName));
-                    } else {
-                        throw new NotImplementedException("No support for '" + fieldElement + "'.");
-                    }
+                    TypedExpressionProcessor processor = getTypedExpression(fieldElement);
+                    queryBuilder.select(processor.process(fieldElement, repository));
                 }
             }
             // Process joins (joins are optional)
@@ -151,4 +145,5 @@ class Deserializer implements JsonDeserializer<Expression> {
         }
         return queryBuilder.getExpression();
     }
+
 }

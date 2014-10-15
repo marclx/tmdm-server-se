@@ -1,13 +1,15 @@
 package org.talend.mdm;
 
-import com.amalto.core.query.user.*;
-import junit.framework.TestCase;
-import org.talend.mdm.commmon.metadata.MetadataRepository;
-import org.talend.mdm.query.QueryParser;
-
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+
+import junit.framework.TestCase;
+
+import org.talend.mdm.commmon.metadata.MetadataRepository;
+import org.talend.mdm.query.QueryParser;
+
+import com.amalto.core.query.user.*;
 
 /**
  *
@@ -114,7 +116,7 @@ public class QueryParserTest extends TestCase {
         assertEquals(1, select.getSelectedFields().size());
         assertEquals(Field.class, select.getSelectedFields().get(0).getClass());
     }
-    
+
     public void testQuery7() {
         QueryParser parser = QueryParser.newParser(repository);
         Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query7.json")); //$NON-NLS-1$
@@ -124,7 +126,7 @@ public class QueryParserTest extends TestCase {
         assertEquals(Field.class, select.getSelectedFields().get(0).getClass());
         assertEquals(Alias.class, select.getSelectedFields().get(1).getClass());
     }
-    
+
     public void testQuery8() {
         QueryParser parser = QueryParser.newParser(repository);
         Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query8.json")); //$NON-NLS-1$
@@ -133,6 +135,7 @@ public class QueryParserTest extends TestCase {
         Condition condition = select.getCondition();
         final List<Predicate> metPredicates = new ArrayList<Predicate>();
         condition.accept(new VisitorAdapter<Object>() {
+
             @Override
             public Object visit(BinaryLogicOperator condition) {
                 condition.getLeft().accept(this);
@@ -161,7 +164,7 @@ public class QueryParserTest extends TestCase {
         assertTrue(metPredicates.contains(Predicate.CONTAINS));
         assertTrue(metPredicates.contains(Predicate.STARTS_WITH));
     }
-    
+
     public void testQuery9() {
         QueryParser parser = QueryParser.newParser(repository);
         Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query9.json")); //$NON-NLS-1$
@@ -184,7 +187,7 @@ public class QueryParserTest extends TestCase {
         assertEquals("fk2", select.getJoins().get(0).getLeftField().getFieldMetadata().getName());
         assertEquals("fk3", select.getJoins().get(1).getLeftField().getFieldMetadata().getName());
     }
-    
+
     public void testQuery11() {
         QueryParser parser = QueryParser.newParser(repository);
         Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query11.json")); //$NON-NLS-1$
@@ -192,5 +195,44 @@ public class QueryParserTest extends TestCase {
         Select select = (Select) expression;
         assertEquals(0, select.getPaging().getStart());
         assertEquals(10, select.getPaging().getLimit());
+    }
+
+    public void testQuery12() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query12.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        Condition condition = select.getCondition();
+        assertTrue(condition instanceof Compare);
+        Expression left = ((Compare) condition).getLeft();
+        assertTrue(left instanceof IndexedField);
+        IndexedField indexedField = (IndexedField) left;
+        assertEquals(0, indexedField.getPosition());
+    }
+
+    public void testQuery13() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query13.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        assertEquals(2, select.getSelectedFields().size());
+        assertTrue(select.getSelectedFields().get(0) instanceof Alias);
+        Alias alias = (Alias) select.getSelectedFields().get(0);
+        assertTrue(alias.getTypedExpression() instanceof Max);
+        assertTrue(select.getSelectedFields().get(0) instanceof Alias);
+        alias = (Alias) select.getSelectedFields().get(1);
+        assertTrue(alias.getTypedExpression() instanceof Min);
+    }
+
+    public void testQuery14() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query14.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        Condition condition = select.getCondition();
+        assertNotNull(condition);
+        assertEquals(Isa.class, condition.getClass());
+        assertEquals("Contained2", ((Isa) condition).getType().getName());
+        assertEquals(Field.class, ((Isa) condition).getExpression().getClass());
     }
 }
