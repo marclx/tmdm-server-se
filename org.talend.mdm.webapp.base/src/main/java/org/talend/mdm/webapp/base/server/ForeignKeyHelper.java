@@ -68,6 +68,47 @@ public class ForeignKeyHelper {
         schemaManager = _schemaManager;
     }
 
+    public static ForeignKeyBean getForeignKeyBean(TypeModel model, EntityModel entityModel, String dataClusterPK, String ids,
+            String xml, String currentXpath, String language) throws Exception {
+        ForeignKeyBean foreignKeyBean = null;
+        boolean hasForeignKeyFilter = model.getFkFilter() != null && model.getFkFilter().trim().length() > 0 ? true : false;
+        ForeignKeyHolder holder = getForeignKeyHolder(xml,
+                currentXpath.split("/")[0], currentXpath, model, hasForeignKeyFilter, ids); //$NON-NLS-1$
+        String[] results = null;
+        if (holder != null) {
+            String conceptName = holder.conceptName;
+            List<String> xPaths = holder.xpaths;
+            WSWhereItem whereItem = holder.whereItem;
+            String fkFilter = holder.fkFilter;
+
+            // Run the query
+            if (!Util.isCustomFilter(fkFilter)) {
+                results = CommonUtil
+                        .getPort()
+                        .xPathsSearch(
+                                new WSXPathsSearch(new WSDataClusterPK(dataClusterPK), null, new WSStringArray(xPaths
+                                        .toArray(new String[xPaths.size()])), whereItem, -1, 0, 20, null, null, true))
+                        .getStrings();
+            } else {
+                String injectedXpath = Util.getInjectedXpath(fkFilter);
+                results = CommonUtil
+                        .getPort()
+                        .getItemsByCustomFKFilters(
+                                new WSGetItemsByCustomFKFilters(new WSDataClusterPK(dataClusterPK), conceptName,
+                                        new WSStringArray(xPaths.toArray(new String[xPaths.size()])), injectedXpath, 0, 20, null,
+                                        null, true, whereItem)).getStrings();
+            }
+        }
+        if (results != null) {
+            List<ForeignKeyBean> foreignKeyBeanList = convertForeignKeyBeanList(results, entityModel, model, dataClusterPK, 0,
+                    language);
+            if (foreignKeyBeanList.size() > 0) {
+                foreignKeyBean = foreignKeyBeanList.get(0);
+            }
+        }
+        return foreignKeyBean;
+    }
+
     public static ItemBasePageLoadResult<ForeignKeyBean> getForeignKeyList(BasePagingLoadConfigImpl config, TypeModel model,
             EntityModel entityModel, String dataClusterPK, boolean ifFKFilter, String value) throws Exception {
 
@@ -121,68 +162,7 @@ public class ForeignKeyHelper {
                                                 .getOffset(), config.getLimit(), xpath, sortDir, true, whereItem)).getStrings();
             }
         }
-
-        List<ForeignKeyBean> fkBeans = new ArrayList<ForeignKeyBean>();
-
         if (results != null) {
-            if (LOG.isDebugEnabled()) {
-                for (String result : results) {
-                    LOG.debug(result);
-                }
-            }
-
-            String fk = model.getForeignkey().split("/")[0]; //$NON-NLS-1$
-            BusinessConcept businessConcept = schemaManager.getBusinessConcept(fk);
-            // init foreignKey info type
-            if (model.getForeignKeyInfo() != null && model.getForeignKeyInfo().size() > 0 && businessConcept != null) {
-                businessConcept.load();
-            }
-            // Polymorphism FK
-            boolean isPolymorphismFK = false;
-            if (businessConcept != null) {
-                String fkReusableType = businessConcept.getCorrespondTypeName();
-                if (fkReusableType != null) {
-                    List<ReusableType> subTypes = SchemaWebAgent.getInstance().getMySubtypes(fkReusableType, true);
-                    List<ReusableType> parentTypes = SchemaWebAgent.getInstance().getMyParents(fkReusableType);
-                    isPolymorphismFK = subTypes.size() > 0 || parentTypes.size() > 0;
-                }
-            }
-
-            for (int currentResult = 1; currentResult < results.length; currentResult++) { // TMDM-2834: first
-                                                                                           // result is count
-                if (results[currentResult] == null) {
-                    // Ignore null results.
-                    continue;
-                }
-                Element resultAsDOM = Util.parse(results[currentResult]).getDocumentElement();
-
-                ForeignKeyBean bean = new ForeignKeyBean();
-                if (businessConcept != null && isPolymorphismFK) {
-                    bean.setTypeName(businessConcept.getCorrespondTypeName());
-                    bean.setConceptName(fk);
-                }
-                String id = ""; //$NON-NLS-1$
-                NodeList nodes = Util.getNodeList(resultAsDOM, "//i"); //$NON-NLS-1$
-                if (nodes != null) {
-                    for (int i = 0; i < nodes.getLength(); i++) {
-                        if (nodes.item(i) instanceof Element) {
-                            id += "[" + (nodes.item(i).getTextContent() == null ? "" : nodes.item(i).getTextContent()) + "]"; //$NON-NLS-1$  //$NON-NLS-2$  //$NON-NLS-3$
-                        }
-                    }
-                }
-
-                if (resultAsDOM.getNodeName().equals("result")) { //$NON-NLS-1$
-                    initFKBean(dataClusterPK, entityModel, resultAsDOM, bean, fk, model.getForeignKeyInfo(),
-                            businessConcept != null ? businessConcept.getXpathDerivedSimpleTypeMap() : null,
-                            (String) config.get("language")); //$NON-NLS-1$
-                    convertFKInfo2DisplayInfo(bean, model.getForeignKeyInfo());
-                } else {
-                    bean.set(resultAsDOM.getNodeName(), resultAsDOM.getTextContent().trim());
-                }
-
-                bean.setId(id);
-                fkBeans.add(bean);
-            }
 
             Matcher matcher = TOTAL_COUNT_PATTERN.matcher(results[0]);
             String count;
@@ -192,19 +172,26 @@ public class ForeignKeyHelper {
                 throw new IllegalArgumentException("Total count '" + results[0] + "' does not match expected format"); //$NON-NLS-1$ //$NON-NLS-2$
             }
             boolean isPagingAccurate = CommonUtil.getPort().isPagingAccurate(new WSInt(Integer.valueOf(count))).is_true();
-            return new ItemBasePageLoadResult<ForeignKeyBean>(fkBeans, config.getOffset(), Integer.valueOf(count),
-                    isPagingAccurate);
+            return new ItemBasePageLoadResult<ForeignKeyBean>(convertForeignKeyBeanList(results, entityModel, model,
+                    dataClusterPK, config.getOffset(), (String) config.get("language")), config.getOffset(), //$NON-NLS-1$
+                    Integer.valueOf(count), isPagingAccurate);
+        } else {
+            return new ItemBasePageLoadResult<ForeignKeyBean>(new ArrayList<ForeignKeyBean>(), config.getOffset(), 0);
         }
-
-        return new ItemBasePageLoadResult<ForeignKeyBean>(fkBeans, config.getOffset(), 0);
     }
 
-    public static ForeignKeyBean getForeignKeyBean(EntityModel entityModel, String dataClusterPK, String concept,
-            List<String> foreignKeyInfo, String xml, String language) throws Exception {
-        ForeignKeyBean foreignKeyBean = new ForeignKeyBean();
-        BusinessConcept businessConcept = schemaManager.getBusinessConcept(concept);
+    private static List<ForeignKeyBean> convertForeignKeyBeanList(String[] results, EntityModel entityModel, TypeModel model,
+            String dataClusterPK, int offset, String language) throws Exception {
+        List<ForeignKeyBean> fkBeans = new ArrayList<ForeignKeyBean>();
+        if (LOG.isDebugEnabled()) {
+            for (String result : results) {
+                LOG.debug(result);
+            }
+        }
+        String fk = model.getForeignkey().split("/")[0]; //$NON-NLS-1$
+        BusinessConcept businessConcept = schemaManager.getBusinessConcept(fk);
         // init foreignKey info type
-        if (foreignKeyInfo != null && foreignKeyInfo.size() > 0 && businessConcept != null) {
+        if (model.getForeignKeyInfo() != null && model.getForeignKeyInfo().size() > 0 && businessConcept != null) {
             businessConcept.load();
         }
         // Polymorphism FK
@@ -217,27 +204,41 @@ public class ForeignKeyHelper {
                 isPolymorphismFK = subTypes.size() > 0 || parentTypes.size() > 0;
             }
         }
-        if (businessConcept != null && isPolymorphismFK) {
-            foreignKeyBean.setTypeName(businessConcept.getCorrespondTypeName());
-            foreignKeyBean.setConceptName(concept);
-        }
 
-        Element resultAsDOM = Util.parse(xml).getDocumentElement();
-        String id = ""; //$NON-NLS-1$
-        String[] keys = entityModel.getKeys();
-        for (String key : keys) {
-            NodeList nodes = Util.getNodeList(resultAsDOM, key.replaceFirst(entityModel.getConceptName() + "/", "./")); //$NON-NLS-1$ //$NON-NLS-2$
+        for (int currentResult = 1; currentResult < results.length; currentResult++) { // TMDM-2834: first
+                                                                                       // result is count
+            if (results[currentResult] == null) {
+                // Ignore null results.
+                continue;
+            }
+            Element resultAsDOM = Util.parse(results[currentResult]).getDocumentElement();
+
+            ForeignKeyBean bean = new ForeignKeyBean();
+            if (businessConcept != null && isPolymorphismFK) {
+                bean.setTypeName(businessConcept.getCorrespondTypeName());
+                bean.setConceptName(fk);
+            }
+            String id = ""; //$NON-NLS-1$
+            NodeList nodes = Util.getNodeList(resultAsDOM, "//i"); //$NON-NLS-1$
             if (nodes != null) {
-                if (nodes.item(0) instanceof Element) {
-                    id += "[" + (nodes.item(0).getTextContent() == null ? "" : nodes.item(0).getTextContent()) + "]"; //$NON-NLS-1$  //$NON-NLS-2$  //$NON-NLS-3$
+                for (int i = 0; i < nodes.getLength(); i++) {
+                    if (nodes.item(i) instanceof Element) {
+                        id += "[" + (nodes.item(i).getTextContent() == null ? "" : nodes.item(i).getTextContent()) + "]"; //$NON-NLS-1$  //$NON-NLS-2$  //$NON-NLS-3$
+                    }
                 }
             }
+
+            if (resultAsDOM.getNodeName().equals("result")) { //$NON-NLS-1$
+                initFKBean(dataClusterPK, entityModel, resultAsDOM, bean, fk, model.getForeignKeyInfo(),
+                        businessConcept != null ? businessConcept.getXpathDerivedSimpleTypeMap() : null, language);
+                convertFKInfo2DisplayInfo(bean, model.getForeignKeyInfo());
+            } else {
+                bean.set(resultAsDOM.getNodeName(), resultAsDOM.getTextContent().trim());
+            }
+            bean.setId(id);
+            fkBeans.add(bean);
         }
-        initFKBean(dataClusterPK, entityModel, resultAsDOM, foreignKeyBean, concept, foreignKeyInfo,
-                businessConcept != null ? businessConcept.getXpathDerivedSimpleTypeMap() : null, language);
-        convertFKInfo2DisplayInfo(foreignKeyBean, foreignKeyInfo);
-        foreignKeyBean.setId(id);
-        return foreignKeyBean;
+        return fkBeans;
     }
 
     protected static class ForeignKeyHolder {

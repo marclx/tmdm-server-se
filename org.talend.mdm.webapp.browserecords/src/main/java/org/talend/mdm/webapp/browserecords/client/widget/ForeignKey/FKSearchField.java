@@ -96,8 +96,11 @@ public class FKSearchField extends TextField<ForeignKeyBean> implements ReturnCr
         foreignBtn.addSelectionListener(new SelectionListener<ButtonEvent>() {
 
             @Override
-            public void componentSelected(ButtonEvent ce) {
+            public void componentSelected(ButtonEvent ce) {                
                 if (relWindow != null) {
+                    if(relWindow.getTypeComboBox() != null){
+                        relWindow.getTypeComboBox().setRawValue(concept);
+                    }
                     relWindow.show();
                 } else {
                     if (foreignKeyField != null && currentEntityModel != null) {
@@ -225,6 +228,11 @@ public class FKSearchField extends TextField<ForeignKeyBean> implements ReturnCr
         if (suggestBox != null) {
             suggestBox.setValue(fk);
         }
+        super.setValue(fk);
+    }
+    
+    @Override
+    public void setSuperValue(ForeignKeyBean fk) {
         super.setValue(fk);
     }
 

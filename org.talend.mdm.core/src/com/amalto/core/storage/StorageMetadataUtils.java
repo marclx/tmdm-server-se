@@ -435,7 +435,7 @@ public class StorageMetadataUtils {
     }
 
     public static Object convert(String dataAsString, String type) {
-        if (Types.STRING.equals(type) || Types.TOKEN.equals(type)) {
+        if (Types.STRING.equals(type) || Types.TOKEN.equals(type) || Types.DURATION.equals(type)) {
             return dataAsString;
         } else if (Types.INTEGER.equals(type) || Types.POSITIVE_INTEGER.equals(type) || Types.NEGATIVE_INTEGER.equals(type)
                 || Types.NON_NEGATIVE_INTEGER.equals(type) || Types.NON_POSITIVE_INTEGER.equals(type) || Types.INT.equals(type)
@@ -499,7 +499,7 @@ public class StorageMetadataUtils {
             return Byte.parseByte(dataAsString);
         } else if (Types.DOUBLE.equals(type) || Types.UNSIGNED_DOUBLE.equals(type)) {
             return Double.parseDouble(dataAsString);
-        } else if (Types.DURATION.equals(type) || Types.TIME.equals(type)) {
+        } else if (Types.TIME.equals(type)) {
             // Be careful here: DateFormat is not thread safe
             synchronized (TimeConstant.TIME_FORMAT) {
                 try {
@@ -542,9 +542,11 @@ public class StorageMetadataUtils {
             return "java.lang.Boolean"; //$NON-NLS-1$
         } else if (Types.DECIMAL.equals(type)) {
             return "java.math.BigDecimal"; //$NON-NLS-1$
-        } else if (Types.DATE.equals(type) || Types.DATETIME.equals(type) || Types.TIME.equals(type)
-                || Types.DURATION.equals(type)) {
+        } else if (Types.DATE.equals(type) || Types.DATETIME.equals(type) || Types.TIME.equals(type)) {
             return "java.sql.Timestamp"; //$NON-NLS-1$
+        } else if (Types.DURATION.equals(type)) {
+            // TMDM-7768: Maps duration to string (format validation to be performed by XSD checks)
+            return "java.lang.String"; //$NON-NLS-1$
         } else if (Types.UNSIGNED_SHORT.equals(type) || Types.SHORT.equals(type)) {
             return "java.lang.Short"; //$NON-NLS-1$
         } else if (Types.UNSIGNED_LONG.equals(type) || Types.LONG.equals(type)) {

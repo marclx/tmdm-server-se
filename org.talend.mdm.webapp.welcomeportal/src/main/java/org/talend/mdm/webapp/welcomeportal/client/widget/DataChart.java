@@ -47,7 +47,7 @@ public class DataChart extends ChartPortlet {
 
         String setting = portalConfigs.getChartSetting(portletName);
         if (setting != null) {
-            configModel = new EntityConfigModel(setting);
+            configModel = new EntityConfigModel(startedAsOn, setting);
         } else {
             configModel = new EntityConfigModel(startedAsOn);
         }
@@ -168,7 +168,7 @@ public class DataChart extends ChartPortlet {
         Set<String> entityNames = chartData.keySet();
         List<String> entityNamesSorted = sort(entityNames);
 
-        if (!dataContainerChanged && !configModelChanged) {
+        if (!dataContainerChanged && !configSettingChanged) {
             // keep SeriesHandler, just clean their data
             model.clear();
             List<? extends SeriesHandler> series = model.getHandlers();

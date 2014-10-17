@@ -49,4 +49,6 @@ public interface GeneralService extends RemoteService {
     public boolean supportStaging(String dataCluster) throws ServiceException;
 
     public void setDefaultLanguage(String language) throws ServiceException;
+
+    public boolean isEnterpriseVersion() throws ServiceException;
 }

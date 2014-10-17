@@ -43,15 +43,16 @@ public class General implements EntryPoint {
         // these code come from Gxt sdk
         GeneralEnvironment.loadAll();
 
+        ServiceDefTarget service = GWT.create(GeneralService.class);
+        ServiceEnhancer.customizeService(service);
+        Registry.register(OVERALL_SERVICE, service);
+
         registerPubServices();
 
         registerPubService();
 
         registerPortalConfigService();
 
-        ServiceDefTarget service = GWT.create(GeneralService.class);
-        ServiceEnhancer.customizeService(service);
-        Registry.register(OVERALL_SERVICE, service);
         PublicMessageService.registerMessageService();
 
         Dispatcher dispatcher = Dispatcher.get();
@@ -79,7 +80,7 @@ public class General implements EntryPoint {
 		var actionsPanel = @org.talend.mdm.webapp.general.client.layout.ActionsPanel::getInstance()();
 
 		$wnd.amalto.core.markPortlets = function(configs, allCharts) {
-			actionsPanel.@org.talend.mdm.webapp.general.client.layout.ActionsPanel::updatePortletConfig(Ljava/util/Map;Ljava/util/Set;)(configs, allCharts);
+			actionsPanel.@org.talend.mdm.webapp.general.client.layout.ActionsPanel::updatePortletConfig(Ljava/lang/String;)(configs);
 		};
 
 		$wnd.amalto.core.unmarkPortlet = function(name) {

@@ -311,6 +311,11 @@ public class MetadataRepositoryTaskTest extends TestCase {
         }
 
         @Override
+        public boolean isClosed() {
+            return false;
+        }
+
+        @Override
         public Storage asInternal() {
             return this;
         }

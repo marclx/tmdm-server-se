@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.StringTokenizer;
 
 import org.apache.commons.lang.NotImplementedException;
-import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.KeywordAnalyzer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryParser.MultiFieldQueryParser;
@@ -62,13 +61,10 @@ import com.amalto.core.query.user.metadata.StagingStatus;
 import com.amalto.core.query.user.metadata.TaskId;
 import com.amalto.core.query.user.metadata.Timestamp;
 import com.amalto.core.storage.Storage;
-import com.amalto.core.storage.datasource.RDBMSDataSource;
 
 class LuceneQueryGenerator extends VisitorAdapter<Query> {
 
     private final Collection<ComplexTypeMetadata> types;
-
-    private final RDBMSDataSource dataSource;
 
     private String currentFieldName;
 
@@ -76,9 +72,8 @@ class LuceneQueryGenerator extends VisitorAdapter<Query> {
 
     private boolean isBuildingNot;
 
-    LuceneQueryGenerator(Collection<ComplexTypeMetadata> types, RDBMSDataSource dataSource) {
+    LuceneQueryGenerator(Collection<ComplexTypeMetadata> types) {
         this.types = types;
-        this.dataSource = dataSource;
     }
 
     @Override
@@ -334,7 +329,7 @@ class LuceneQueryGenerator extends VisitorAdapter<Query> {
         String[] fieldsAsArray = fields.toArray(new String[fields.size()]);
         StringBuilder queryBuffer = new StringBuilder();
         Iterator<String> fieldsIterator = fields.iterator();
-        String fullTextValue = getValue(fullText, false);
+        String fullTextValue = getValue(fullText);
         while (fieldsIterator.hasNext()) {
             String next = fieldsIterator.next();
             queryBuffer.append(next).append(':').append(fullTextValue);
@@ -343,23 +338,21 @@ class LuceneQueryGenerator extends VisitorAdapter<Query> {
             }
         }
         String fullTextQuery = queryBuffer.toString();
-        return parseQuery(fieldsAsArray, fullTextQuery, false);
+        return parseQuery(fieldsAsArray, fullTextQuery);
     }
 
     @Override
     public Query visit(FieldFullText fieldFullText) {
         String fieldName = fieldFullText.getField().getFieldMetadata().getName();
         String[] fieldsAsArray = new String[] { fieldName };
-        boolean caseSensitiveSearch = dataSource.isCaseSensitiveSearch();
-        String fullTextQuery = fieldName + ':' + getValue(fieldFullText, caseSensitiveSearch);
-        return parseQuery(fieldsAsArray, fullTextQuery, caseSensitiveSearch);
+        String fullTextQuery = fieldName + ':' + getValue(fieldFullText);
+        return parseQuery(fieldsAsArray, fullTextQuery);
     }
 
-    private Query parseQuery(String[] fieldsAsArray, String fullTextQuery, boolean caseSensitiveSearch) {
-        MultiFieldQueryParser parser = new MultiFieldQueryParser(Version.LUCENE_29, fieldsAsArray,
-                getAnalyzer(caseSensitiveSearch));
+    private Query parseQuery(String[] fieldsAsArray, String fullTextQuery) {
+        MultiFieldQueryParser parser = new MultiFieldQueryParser(Version.LUCENE_29, fieldsAsArray, new KeywordAnalyzer());
         // Very important! Lucene does an implicit lower case for "expanded terms" (which is something used).
-        parser.setLowercaseExpandedTerms(!caseSensitiveSearch);
+        parser.setLowercaseExpandedTerms(true);
         try {
             return parser.parse(fullTextQuery);
         } catch (ParseException e) {
@@ -367,21 +360,8 @@ class LuceneQueryGenerator extends VisitorAdapter<Query> {
         }
     }
 
-    private static Analyzer getAnalyzer(boolean caseSensitiveSearch) {
-        if (!caseSensitiveSearch) {
-            return new KeywordAnalyzer();
-        } else {
-            return new MDMStandardAnalyzer(Version.LUCENE_29);
-        }
-    }
-
-    private static String getValue(FullText fullText, boolean caseSensitiveSearch) {
-        String value;
-        if (!caseSensitiveSearch) {
-            value = fullText.getValue().toLowerCase();
-        } else {
-            value = fullText.getValue();
-        }
+    private static String getValue(FullText fullText) {
+        String value = fullText.getValue().toLowerCase();
         int index = 0;
         while (value.charAt(index) == '*') { // Skip '*' characters at beginning.
             index++;

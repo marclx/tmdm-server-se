@@ -20,7 +20,7 @@ import com.amalto.core.storage.record.DataRecord;
  * @see MetadataField.Factory#getMetadataField(String)
  * @see MetadataField#SUPPORTED_METADATA
  */
-public interface MetadataField {
+public interface MetadataField extends TypedExpression {
 
     /**
      * Lists all metadata fields supported by this MDM.

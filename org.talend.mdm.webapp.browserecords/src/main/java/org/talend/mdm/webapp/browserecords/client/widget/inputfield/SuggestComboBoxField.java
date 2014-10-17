@@ -126,6 +126,7 @@ public class SuggestComboBoxField extends ComboBoxEx<ForeignKeyBean> {
                             @Override
                             public void onSuccess(List<ForeignKeyBean> result) {
                                 updateListStore(result);
+                                updateSelectedBean();
                             }
                         });
             }
@@ -219,6 +220,28 @@ public class SuggestComboBoxField extends ComboBoxEx<ForeignKeyBean> {
             this.setExpanded(getForceSelection());
         }
         this.expand();
+    }
+    
+    public void updateSelectedBean() {
+        if(foreignKeyStore != null){
+            for(ForeignKeyBean bean : foreignKeyStore.getModels()){
+                if (bean.getDisplayInfo() == null
+                        || "".equals(bean.getDisplayInfo()) || "null".equals(bean.getDisplayInfo())) { //$NON-NLS-1$ //$NON-NLS-2$
+                    if(bean.getId().equalsIgnoreCase(this.getRawValue())){
+                        selectedBean = bean;
+                    } else {
+                        selectedBean = null;
+                    }
+                } else {
+                    if(bean.getDisplayInfo().equalsIgnoreCase(this.getRawValue())){
+                        selectedBean = bean;
+                    } else {
+                        selectedBean = null;
+                    }
+                }
+            }
+            foreignKeyField.setSuperValue(selectedBean);
+        }
     }
 
     public void setFieldValue() {

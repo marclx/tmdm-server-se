@@ -24,9 +24,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import com.amalto.webapp.core.dwr.CommonDWR;
-import com.amalto.webapp.core.util.SessionListener;
-import com.amalto.webapp.core.util.Util;
+import com.amalto.core.delegator.ILocalUser;
+import com.amalto.core.util.LocalUser;
 import com.amalto.core.webservice.WSBoolean;
 import com.amalto.core.webservice.WSDataClusterPK;
 import com.amalto.core.webservice.WSDataModelPK;
@@ -35,6 +34,9 @@ import com.amalto.core.webservice.WSExistsDataModel;
 import com.amalto.core.webservice.WSGetItem;
 import com.amalto.core.webservice.WSItemPK;
 import com.amalto.core.webservice.WSPutItem;
+import com.amalto.webapp.core.dwr.CommonDWR;
+import com.amalto.webapp.core.util.SessionListener;
+import com.amalto.webapp.core.util.Util;
 
 public class Configuration {
 
@@ -167,7 +169,8 @@ public class Configuration {
                 .getContent();
         Document d = Util.parse(xml);
         NodeList nodeList = Util.getNodeList(d, "//property"); //$NON-NLS-1$
-        if (nodeList.getLength() == 0) {
+        // TMDM-7434: portal config propert already exist
+        if (Util.getNodeList(d, "//property[name='cluster']").getLength() == 0) { //$NON-NLS-1$
             if (Util.getNodeList(d, "//properties").item(0) == null) { //$NON-NLS-1$
                 d.getDocumentElement().appendChild(d.createElement("properties")); //$NON-NLS-1$
             }
@@ -199,14 +202,17 @@ public class Configuration {
                 }
             }
         }
+
+        String updatedUser = CommonDWR.getXMLStringFromDocument(d).replaceAll("<\\?xml.*?\\?>", ""); //$NON-NLS-1$ //$NON-NLS-2$
+        ILocalUser user = LocalUser.getLocalUser();
         if (com.amalto.core.util.Util.isEnterprise()) {
             Util.getPort().putItem(
-                    new WSPutItem(new WSDataClusterPK("PROVISIONING"), CommonDWR.getXMLStringFromDocument(d).replaceAll( //$NON-NLS-1$
-                            "<\\?xml.*?\\?>", ""), new WSDataModelPK("PROVISIONING"), false)); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                    new WSPutItem(new WSDataClusterPK("PROVISIONING"), updatedUser, new WSDataModelPK("PROVISIONING"), false)); //$NON-NLS-1$ //$NON-NLS-2$ 
+
         } else {
-            Util.storeProvisioning(Util.getLoginUserName(), CommonDWR.getXMLStringFromDocument(d)
-                    .replaceAll("<\\?xml.*?\\?>", "")); //$NON-NLS-1$ //$NON-NLS-2$
+            Util.storeProvisioning(Util.getLoginUserName(), updatedUser);
         }
+        user.setUserXML(updatedUser);// syn cache
     }
 
     private static Configuration load(HttpSession session) throws Exception {
@@ -288,7 +294,10 @@ public class Configuration {
                 LOG.error("Unable to store updated configuration", e); //$NON-NLS-1$
             }
         }
-
+        Document d = user.getOwnerDocument();
+        String updatedUser = CommonDWR.getXMLStringFromDocument(d).replaceAll("<\\?xml.*?\\?>", ""); //$NON-NLS-1$ //$NON-NLS-2$
+        ILocalUser iUser = LocalUser.getLocalUser();
+        iUser.setUserXML(updatedUser);// syn cache
         return configuration;
     }
 

@@ -2,13 +2,20 @@ package org.talend.mdm.webapp.browserecords.client.widget.inputfield;
 
 import java.util.List;
 
+import org.talend.mdm.webapp.base.client.SessionAwareAsyncCallback;
 import org.talend.mdm.webapp.base.client.model.ForeignKeyBean;
 import org.talend.mdm.webapp.browserecords.client.BrowseRecords;
 import org.talend.mdm.webapp.browserecords.client.BrowseRecordsEvents;
+import org.talend.mdm.webapp.browserecords.client.ServiceFactory;
+import org.talend.mdm.webapp.browserecords.client.handler.ItemTreeHandler;
+import org.talend.mdm.webapp.browserecords.client.handler.ItemTreeHandlingStatus;
 import org.talend.mdm.webapp.browserecords.client.i18n.MessagesFactory;
+import org.talend.mdm.webapp.browserecords.client.model.ItemNodeModel;
 import org.talend.mdm.webapp.browserecords.client.mvc.BrowseRecordsView;
 import org.talend.mdm.webapp.browserecords.client.resources.icon.Icons;
+import org.talend.mdm.webapp.browserecords.client.util.Locale;
 import org.talend.mdm.webapp.browserecords.client.widget.ForeignKeyFieldList;
+import org.talend.mdm.webapp.browserecords.client.widget.ItemPanel;
 import org.talend.mdm.webapp.browserecords.client.widget.ItemsDetailPanel;
 import org.talend.mdm.webapp.browserecords.client.widget.ForeignKey.FKField;
 import org.talend.mdm.webapp.browserecords.client.widget.ForeignKey.ReturnCriteriaFK;
@@ -20,6 +27,7 @@ import com.extjs.gxt.ui.client.event.ComponentEvent;
 import com.extjs.gxt.ui.client.mvc.AppEvent;
 import com.extjs.gxt.ui.client.mvc.Dispatcher;
 import com.extjs.gxt.ui.client.widget.ComponentHelper;
+import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.extjs.gxt.ui.client.widget.form.TextField;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -57,9 +65,15 @@ public class ForeignKeyField extends TextField<ForeignKeyBean> implements Return
 
     private boolean staging;
 
+    private String currentNodeXpath;
+
+    private String fkFilter;
+
     public ForeignKeyField(String currentNodeXpath, String fkFilter, String foreignKey, List<String> foreignKeyInfo,
             ItemsDetailPanel itemsDetailPanel) {
         this.validateFlag = BrowseRecords.getSession().getAppHeader().isAutoValidate();
+        this.currentNodeXpath = currentNodeXpath;
+        this.fkFilter = fkFilter;
         this.itemsDetailPanel = itemsDetailPanel;
         this.foreignKey = foreignKey;
         this.foreignKeyInfo = foreignKeyInfo;
@@ -264,6 +278,26 @@ public class ForeignKeyField extends TextField<ForeignKeyBean> implements Return
         ComponentHelper.doDetach(suggestBox);
     }
 
+    public void setCriteriaFK(final String foreignKeyIds) {
+        ItemPanel itemPanel = (ItemPanel) itemsDetailPanel.getFirstTabWidget();
+        ItemNodeModel root = itemPanel.getTree().getRootModel();
+        String xml = (new ItemTreeHandler(root, itemPanel.getViewBean(), ItemTreeHandlingStatus.BeforeLoad)).serializeItem();
+        ServiceFactory.getInstance().getService(staging)
+                .getForeignKeyBean(foreignKey.split("/")[0], foreignKeyIds, xml, currentNodeXpath, foreignKey, foreignKeyInfo, //$NON-NLS-1$
+                        fkFilter, staging, Locale.getLanguage(), new SessionAwareAsyncCallback<ForeignKeyBean>() {
+
+                            @Override
+                            public void onSuccess(ForeignKeyBean foreignKeyBean) {
+                                if (foreignKeyBean != null) {
+                                    setCriteriaFK(foreignKeyBean);
+                                } else {
+                                    MessageBox.alert(MessagesFactory.getMessages().warning_title(), MessagesFactory.getMessages()
+                                            .foreignkeybean_filter_warnging(), null);
+                                }
+                            }
+                        });
+    }
+
     @Override
     public void setCriteriaFK(final ForeignKeyBean fk) {
         if (fk != null && fk.getConceptName() != null && fk.getConceptName().trim().length() > 0) {
@@ -280,6 +314,11 @@ public class ForeignKeyField extends TextField<ForeignKeyBean> implements Return
             }
             super.setValue(fk);
         }
+    }
+    
+    @Override
+    public void setSuperValue(ForeignKeyBean fk) {
+        super.setValue(fk);
     }
 
     @Override

@@ -100,8 +100,16 @@ public class DataStatistics {
             }
             dataStorage.commit();
         } catch (Exception e) {
-            dataStorage.rollback();
-            throw new RuntimeException("Could not provide statistics.", e);
+            if (dataStorage.isClosed()) {
+                // TMDM-7749: Ignore errors when storage is closed.
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Exception occurred due to closed storage.", e);
+                }
+                return Response.status(Response.Status.NO_CONTENT).build();
+            } else {
+                dataStorage.rollback();
+                throw new RuntimeException("Could not provide statistics.", e);
+            }
         }
         // Write results
         if (top == null || top <= 0) {

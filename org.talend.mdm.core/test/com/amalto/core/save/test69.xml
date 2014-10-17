@@ -1,0 +1,8 @@
+<E>
+    <id>id1</id>
+    <a>
+        <name><idC>x</idC><nameC>y</nameC></name>
+        <name><idC>x</idC><nameC>y</nameC></name>
+        <b><idB>u</idB><nameB>v</nameB><noB>w</noB></b>
+    </a>
+</E>

@@ -15,4 +15,6 @@ package org.talend.mdm.webapp.base.shared;
 public class Constants {
 
     public final static int PAGE_SIZE = 20;
+
+    public final static String PORTAL_CONFIG_PREFIX = "mdm_pref_"; //$NON-NLS-1$
 }

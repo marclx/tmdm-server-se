@@ -7,24 +7,7 @@ http://www.talend.com
 
 > Contents
 
-This repository contains the source files for Talend Open Studio for MDM. These files must be used together with the code contained in [tcommon-studio-se](https://github.com/Talend/tcommon-studio-se), [tmdm-studio-se](https://github.com/Talend/tmdm-studio-se) and [tmdm-common](https://github.com/Talend/tmdm-common).
-
-
-## Repository Structure
-All Talend Studio repositories follow the same file structure:
-```
-
-  |_ main Main Eclipse plugins and features
-    |_ features
-    |_ plugins
-  |_ test Eclipse plugins and features for unit tests. 
-      |_ features
-      |_ plugins
-  |_ i18n Internationalization plugins and features.
-      |_ features
-      |_ plugins
-```
-
+This repository contains the source files for Talend MDM Server.
 
 ## Download
 
@@ -53,5 +36,3 @@ Feel free to share your Talend components on [Talend Exchange](http://www.talend
 ## License
 
 Copyright (c) 2006-2014 Talend
-
-Licensed under the GPLv2 License

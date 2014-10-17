@@ -761,4 +761,15 @@ public class StorageFullTextTest extends StorageTestCase {
             results.close();
         }
     }
+
+    public void testTimeStampProjectionNoAlias() throws Exception {
+        // TMDM-7737: Test metadata field projection *with* paging in query.
+        UserQueryBuilder qb = from(product).select(timestamp()).where(fullText(product.getField("Features"), "klein")).start(0).limit(20);
+        StorageResults results = storage.fetch(qb.getSelect());
+        try {
+            assertEquals(1, results.getCount());
+        } finally {
+            results.close();
+        }
+    }
 }

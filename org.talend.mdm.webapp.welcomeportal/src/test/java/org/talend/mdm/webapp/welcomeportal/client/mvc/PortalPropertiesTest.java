@@ -123,6 +123,17 @@ public class PortalPropertiesTest extends TestCase {
         assertNull(actual2);
     }
 
+    public void testGetAutoRefreshStatusMap() {
+        props = new PortalProperties(propsWithValues);
+        Map<String, Boolean> expected = getExpectedAutoRefreshStatus();
+        Map<String, Boolean> actual1 = props.getAutoRefreshStatus();
+        assertTrue(expected.equals(actual1));
+
+        props = new PortalProperties(propsWithNulls);
+        Map<String, Boolean> actual2 = props.getAutoRefreshStatus();
+        assertNull(actual2);
+    }
+
     public void testGetAutoRefreshStatus() {
         List<String> portlets = Arrays.asList("portlet1", "portlet2", "portlet3", "portlet4");
         props = new PortalProperties(propsWithValues);
@@ -153,6 +164,20 @@ public class PortalPropertiesTest extends TestCase {
         props = new PortalProperties(propsWithNulls);
         Map<String, String> actual2 = props.getChartSettings();
         assertNull(actual2);
+    }
+
+    public void testDisableAutoRefresh() {
+        Set<String> portletNames = new HashSet<String>(Arrays.asList("portlet1", "portlet3", "portlet5", "portlet7", "portlet9"));
+        props = new PortalProperties(propsWithValues);
+
+        props.disableAutoRefresh(portletNames);
+
+        Boolean expected = false;
+        Boolean actual;
+        for (String name : portletNames) {
+            actual = props.getAutoRefreshStatus(name);
+            assertTrue(expected.equals(actual));
+        }
     }
 
     private Boolean getExpectedAutoRefreshes(char index) {
@@ -193,6 +218,20 @@ public class PortalPropertiesTest extends TestCase {
     }
 
     private Map<String, Boolean> getExpectedPortletVisibles() {
+        Map<String, Boolean> expects = new HashMap<String, Boolean>();
+        expects.put("portlet1", true);
+        expects.put("portlet2", false);
+        expects.put("portlet3", true);
+        expects.put("portlet4", false);
+        expects.put("portlet5", true);
+        expects.put("portlet6", false);
+        expects.put("portlet7", true);
+        expects.put("portlet8", false);
+        expects.put("portlet9", true);
+        return expects;
+    }
+
+    private Map<String, Boolean> getExpectedAutoRefreshStatus() {
         Map<String, Boolean> expects = new HashMap<String, Boolean>();
         expects.put("portlet1", true);
         expects.put("portlet2", false);

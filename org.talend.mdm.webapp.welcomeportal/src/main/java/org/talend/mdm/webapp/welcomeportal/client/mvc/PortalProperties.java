@@ -45,6 +45,12 @@ public class PortalProperties implements IsSerializable {
         super();
     }
 
+    // create a deep copy
+    public PortalProperties(PortalProperties props) {
+        super();
+        configProperties = new HashMap<String, String>(props.configProperties);
+    }
+
     public PortalProperties(Map<String, String> props) {
         super();
         for (String name : props.keySet()) {
@@ -89,26 +95,7 @@ public class PortalProperties implements IsSerializable {
 
     public Map<String, Boolean> getPortletToVisibilities() {
         String portletVisibilitiesStr = configProperties.get(KEY_PORTLET_VISIBILITIES);
-        if (portletVisibilitiesStr != null) {
-            String pattern = "((\\w+)=(\\w+),?)"; //$NON-NLS-1$
-            RegExp regExp = RegExp.compile(pattern, "g"); //$NON-NLS-1$
-
-            String portletName;
-            Map<String, Boolean> visibilities = new HashMap<String, Boolean>();
-
-            MatchResult matcher = regExp.exec(portletVisibilitiesStr);
-            while (matcher != null) {
-                portletName = matcher.getGroup(2);
-                Boolean visible = Boolean.parseBoolean(matcher.getGroup(3));
-                visibilities.put(portletName, visible);
-
-                matcher = regExp.exec(portletVisibilitiesStr);
-            }
-
-            return visibilities;
-        } else {
-            return null;
-        }
+        return parseStringBooleanPair(portletVisibilitiesStr);
 
     }
 
@@ -135,6 +122,33 @@ public class PortalProperties implements IsSerializable {
         if (allChartsStr != null) {
             String chartNames = allChartsStr.substring(1, allChartsStr.length() - 1);
             return new HashSet<String>(Arrays.asList(chartNames.split(", "))); //$NON-NLS-1$
+        } else {
+            return null;
+        }
+    }
+
+    public Map<String, Boolean> getAutoRefreshStatus() {
+        return parseStringBooleanPair(configProperties.get(KEY_AUTO_ONOFFS));
+    }
+
+    private Map<String, Boolean> parseStringBooleanPair(String valuesStr) {
+        if (valuesStr != null) {
+            String pattern = "((\\w+)=(\\w+),?)"; //$NON-NLS-1$
+            RegExp regExp = RegExp.compile(pattern, "g"); //$NON-NLS-1$
+
+            String portletName;
+            Map<String, Boolean> stringBooleanPairs = new HashMap<String, Boolean>();
+
+            MatchResult matcher = regExp.exec(valuesStr);
+            while (matcher != null) {
+                portletName = matcher.getGroup(2);
+                Boolean visible = Boolean.parseBoolean(matcher.getGroup(3));
+                stringBooleanPairs.put(portletName, visible);
+
+                matcher = regExp.exec(valuesStr);
+            }
+
+            return stringBooleanPairs;
         } else {
             return null;
         }
@@ -209,15 +223,23 @@ public class PortalProperties implements IsSerializable {
         return setting;
     }
 
-    public void add(String key, String portletName, String value) {
-        String autosOrSettings = null;
-        if (key.equals(KEY_AUTO_ONOFFS)) {
-            autosOrSettings = configProperties.get(KEY_AUTO_ONOFFS);
-        } else if (key.equals(KEY_CHART_SETTINGS)) {
-            autosOrSettings = configProperties.get(KEY_CHART_SETTINGS);
+    public void disableAutoRefresh(Set<String> portletNames) {
+        for (String name : portletNames) {
+            add(KEY_AUTO_ONOFFS, name, ((Boolean) false).toString());
         }
-        autosOrSettings = updateConfigs(autosOrSettings, portletName, value);
-        configProperties.put(key, autosOrSettings);
+    }
+
+    public void add(String key, String portletName, String value) {
+        String configs = null;
+        if (key.equals(KEY_AUTO_ONOFFS)) {
+            configs = configProperties.get(KEY_AUTO_ONOFFS);
+        } else if (key.equals(KEY_CHART_SETTINGS)) {
+            configs = configProperties.get(KEY_CHART_SETTINGS);
+        } else if (key.equals(KEY_PORTLET_VISIBILITIES)) {
+            configs = configProperties.get(KEY_PORTLET_VISIBILITIES);
+        }
+        configs = updateConfigs(configs, portletName, value);
+        configProperties.put(key, configs);
     }
 
     private String updateConfigs(String original, String name, String value) {

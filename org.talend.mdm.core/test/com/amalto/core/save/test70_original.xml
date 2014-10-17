@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<ii>
+    <c>test</c>
+    <n>C</n>
+    <dmn>test</dmn>
+    <i>id1</i>
+    <t>1406600989055</t>
+    <p>
+        <EntiteA xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <codeA>id4</codeA>
+            <format xsi:type="Format_Entier">
+                <ValeurEntiere>1</ValeurEntiere>
+            </format>
+        </EntiteA>
+    </p>
+</ii>

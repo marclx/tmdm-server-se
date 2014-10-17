@@ -15,6 +15,7 @@ package org.talend.mdm.webapp.welcomeportal.client.mvc;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.talend.mdm.webapp.base.client.SessionAwareAsyncCallback;
 import org.talend.mdm.webapp.welcomeportal.client.GenerateContainer;
 import org.talend.mdm.webapp.welcomeportal.client.MainFramePanel;
 import org.talend.mdm.webapp.welcomeportal.client.WelcomePortal;
@@ -52,7 +53,9 @@ public class WelcomePortalView extends View {
 
     private boolean chartsSwitcherUpdated;
 
-    private static PortalProperties portalConfigDb;
+    private boolean isEnterprise;
+
+    private static PortalProperties portalConfigCache;
 
     private WelcomePortalServiceAsync service = (WelcomePortalServiceAsync) Registry.get(WelcomePortal.WELCOMEPORTAL_SERVICE);
 
@@ -68,22 +71,63 @@ public class WelcomePortalView extends View {
             onRefreshPortlet();
         } else if (event.getType() == WelcomePortalEvents.RefreshPortal) {
             onRefreshPortal(event);
+        } else if (event.getType() == WelcomePortalEvents.RevertRefreshPortal) {
+            onRevertRefreshPortal(event);
         }
     }
 
     private void onRefreshPortal(AppEvent event) {
-        String dataString = event.getData().toString();
+        String dataString = event.getData();
 
-        Map<String, Boolean> parsedConfig = parseConfig(dataString);
-        Boolean defaultColConfig = parsedConfig.get(USING_DEFAULT_COLUMN_NUM);
-        chartsSwitcherUpdated = !(chartsOn == parsedConfig.get(CHARTS_ENABLED));
+        Map<String, Boolean> parsedUserConfig = parseConfig(dataString);
+        Boolean defaultColConfig = parsedUserConfig.get(USING_DEFAULT_COLUMN_NUM);
         ContentPanel container = GenerateContainer.getContentPanel();
-        if ((!chartsSwitcherUpdated)
-                && ((defaultColConfig && numColumns == DEFAULT_COLUMN_NUM) || (!defaultColConfig && numColumns == ALTERNATIVE_COLUMN_NUM))) {
-            ((MainFramePanel) (container.getItems().get(0))).refresh(parsedConfig);
-        } else {// for switching to diff column number or chartsSwitherUpdated
-            updatePortal(parsedConfig);
+        if (isEnterprise) {
+            chartsSwitcherUpdated = !(chartsOn == parsedUserConfig.get(CHARTS_ENABLED));
+
+            if ((!chartsSwitcherUpdated) && (!switchColumn(defaultColConfig))) {
+                ((MainFramePanel) (container.getItems().get(0))).refresh(parsedUserConfig);
+            } else {// for switching to diff column number or chartsSwitherUpdated
+                updatePortal(parsedUserConfig);
+            }
+        } else {
+            if (!switchColumn(defaultColConfig)) {
+                ((MainFramePanel) (container.getItems().get(0))).refresh(parsedUserConfig);
+            } else {
+                updatePortal(parsedUserConfig);
+            }
         }
+    }
+
+    private boolean switchColumn(Boolean defaultColConfig) {
+        if (isEnterprise) {
+            return (defaultColConfig && numColumns == ALTERNATIVE_COLUMN_NUM)
+                    || (!defaultColConfig && numColumns == DEFAULT_COLUMN_NUM);
+        } else {
+            return (defaultColConfig && numColumns == DEFAULT_COLUMN_NUM)
+                    || (!defaultColConfig && numColumns == ALTERNATIVE_COLUMN_NUM);
+        }
+    }
+
+    private void onRevertRefreshPortal(AppEvent event) {
+
+        if (Log.isInfoEnabled()) {
+            Log.info("Revert RefreshPortal due to saving to db failed... ");//$NON-NLS-1$
+        }
+
+        ContentPanel container = GenerateContainer.getContentPanel();
+
+        portalConfigCache = (PortalProperties) event.getData();
+
+        numColumns = portalConfigCache.getColumnNum();
+
+        ((MainFramePanel) portal).stopAutoRefresh();
+        ((MainFramePanel) portal).removeAllPortlets();
+
+        container.remove(portal);
+        portal = new MainFramePanel(numColumns, portalConfigCache, isEnterprise);
+        container.add(portal);
+        container.layout(true);
     }
 
     private Map<String, Boolean> parseConfig(String dataString) {
@@ -102,20 +146,34 @@ public class WelcomePortalView extends View {
         return config;
     }
 
-    private void updatePortal(final Map<String, Boolean> config) {
+    private void updatePortal(final Map<String, Boolean> userConfig) {
         if (Log.isInfoEnabled()) {
             Log.info("Refresh with different column number... ");//$NON-NLS-1$
         }
+
         ContentPanel container = GenerateContainer.getContentPanel();
-        numColumns = config.get(USING_DEFAULT_COLUMN_NUM) ? DEFAULT_COLUMN_NUM : ALTERNATIVE_COLUMN_NUM;
-        chartsOn = config.get(CHARTS_ENABLED);
-        if (chartsSwitcherUpdated && !chartsOn) {
-            ((MainFramePanel) portal).stopChartsAutoRefresh();
+        numColumns = getColumNum(userConfig.get(USING_DEFAULT_COLUMN_NUM));
+
+        if (isEnterprise) {
+            chartsOn = userConfig.get(CHARTS_ENABLED);
         }
+
+        ((MainFramePanel) portal).stopAutoRefresh();
+        ((MainFramePanel) portal).removeAllPortlets();
         container.remove(portal);
-        portal = new MainFramePanel(numColumns, portalConfigDb, config);
+
+        portal = new MainFramePanel(numColumns, portalConfigCache, userConfig, isEnterprise);
         container.add(portal);
         container.layout(true);
+    }
+
+    private int getColumNum(boolean usingDefaultCol) {
+        if (usingDefaultCol) {
+            return isEnterprise ? DEFAULT_COLUMN_NUM : ALTERNATIVE_COLUMN_NUM;
+        } else {
+            return isEnterprise ? ALTERNATIVE_COLUMN_NUM : DEFAULT_COLUMN_NUM;
+        }
+
     }
 
     private void onRefreshPortlet() {
@@ -127,20 +185,34 @@ public class WelcomePortalView extends View {
         if (Log.isInfoEnabled()) {
             Log.info("Init frame... ");//$NON-NLS-1$
         }
-        PortalProperties config = (PortalProperties) event.getData();
-        portalConfigDb = config;
+        portalConfigCache = (PortalProperties) event.getData();
         final ContentPanel container = GenerateContainer.getContentPanel();
-        container.setHeaderVisible(false);
+        // container.setHeaderVisible(false);
         container.setLayout(new FitLayout());
         container.setStyleAttribute("height", "100%");//$NON-NLS-1$ //$NON-NLS-2$
 
-        Integer numColumnsObj = config.getColumnNum();
-        numColumns = (numColumnsObj == null) ? DEFAULT_COLUMN_NUM : numColumnsObj;
+        service.isEnterpriseVersion(new SessionAwareAsyncCallback<Boolean>() {
 
-        Boolean chartsOnObj = config.getChartsOn();
-        chartsOn = (chartsOnObj == null) ? true : chartsOnObj;
-        portal = new MainFramePanel(numColumns, config);
-        container.add(portal);
-        container.layout(true);
+            @Override
+            public void onSuccess(Boolean isEE) {
+                isEnterprise = isEE;
+                Integer numColumnsObj = portalConfigCache.getColumnNum();
+                numColumns = (numColumnsObj == null) ? getDefaultColumNum() : numColumnsObj;
+
+                if (isEnterprise) {
+                    Boolean chartsOnObj = portalConfigCache.getChartsOn();
+                    chartsOn = (chartsOnObj == null) ? true : chartsOnObj;
+                }
+
+                portal = new MainFramePanel(numColumns, portalConfigCache, isEnterprise);
+                container.add(portal);
+                container.layout(true);
+            }
+        });
+
+    }
+
+    private Integer getDefaultColumNum() {
+        return isEnterprise ? DEFAULT_COLUMN_NUM : ALTERNATIVE_COLUMN_NUM;
     }
 }

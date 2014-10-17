@@ -608,14 +608,14 @@ public class MockGridRefreshGWTTest extends GWTTestCase {
         }
 
         @Override
-        public void getForeignKeyBean(String ids, String concept, List<String> foreignKeyInfo, boolean staging, String language,
-                AsyncCallback<ForeignKeyBean> callback) {
+        public void checkTask(String dataClusterPK, String viewPK, String concept, String groupId, AsyncCallback<Boolean> callback) {
 
         }
 
         @Override
-        public void checkTask(String dataClusterPK, String viewPK, String concept, String groupId, AsyncCallback<Boolean> callback) {
-
+        public void getForeignKeyBean(String concept, String ids, String xml, String currentXpath, String foreignKey,
+                List<String> foreignKeyInfo, String foreignKeyFilter, boolean staging, String language,
+                AsyncCallback<ForeignKeyBean> callback) {
         }
     }
 

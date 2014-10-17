@@ -38,12 +38,15 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.HTML;
 
-
 public class AccordionMenus extends ContentPanel {
+
+    private static final String CHECKMENUID_WELCOME_PORTAL = "welcomeportal.WelcomePortal"; //$NON-NLS-1$
 
     private static AccordionMenus instance;
 
     private HTMLMenuItem activeItem;
+
+    private HTMLMenuItem welcomeportalItem;
 
     private GeneralServiceAsync service = (GeneralServiceAsync) Registry.get(General.OVERALL_SERVICE);
 
@@ -74,7 +77,11 @@ public class AccordionMenus extends ContentPanel {
             str.append("<img src='" + icon + "'/>&nbsp;&nbsp;"); //$NON-NLS-1$ //$NON-NLS-2$    
         }
         str.append("<span class='desc'>" + mb.getName() + "</span></span>"); //$NON-NLS-1$ //$NON-NLS-2$
-        HTML html = new HTMLMenuItem(mb, str.toString());
+        HTMLMenuItem tempItem = new HTMLMenuItem(mb, str.toString());
+        if (CHECKMENUID_WELCOME_PORTAL.equals(toCheckMenuID)) {
+            welcomeportalItem = tempItem;
+        }
+        HTML html = tempItem;
         html.addClickHandler(clickHander);
         menuPanel.add(html);
     }
@@ -89,8 +96,9 @@ public class AccordionMenus extends ContentPanel {
     public void initMenus(MenuGroup menuGroup) {
         List<MenuBean> menus = menuGroup.getMenuBean();
         for (GroupItem gi : menuGroup.getGroupItem()) {
-            if ((null == gi.getMenuItems()) || (gi.getMenuItems().size() == 0))
+            if ((null == gi.getMenuItems()) || (gi.getMenuItems().size() == 0)) {
                 continue;
+            }
             ContentPanel menuPanel = new ContentPanel();
             boolean hasMenuItem = false;
             for (String gi2 : gi.getMenuItems()) {
@@ -115,17 +123,21 @@ public class AccordionMenus extends ContentPanel {
                 hasMiscMenus = true;
             }
         }
-        if (hasMiscMenus)
-        setCollapsable(otherPanel);
+        if (hasMiscMenus) {
+            setCollapsable(otherPanel);
+        }
         this.layout();
     }
+
     private MenuBean getMenuBean(String menuName, List<MenuBean> menus) {
         for (MenuBean mb : menus) {
-            if ((mb.getContext() + "." + mb.getApplication()).equals(menuName)) //$NON-NLS-1$
+            if ((mb.getContext() + "." + mb.getApplication()).equals(menuName)) {
                 return mb;
+            }
         }
         return null;
     }
+
     private String makeImageIconPart(MenuBean item, String toCheckMenuID) {
         String icon = null;
         if (item.getIcon() != null && item.getIcon().trim().length() != 0) {
@@ -172,8 +184,9 @@ public class AccordionMenus extends ContentPanel {
     }
 
     public void selectedItem(HTMLMenuItem item) {
-        if (activeItem == item)
+        if (activeItem == item) {
             return;
+        }
         if (activeItem != null) {
             activeItem.removeStyleName("selected"); //$NON-NLS-1$
         }
@@ -186,14 +199,14 @@ public class AccordionMenus extends ContentPanel {
         while (groupIter.hasNext()) {
             ContentPanel panel = (ContentPanel) groupIter.next();
             Iterator<Component> itemIter = panel.iterator();
-            while (itemIter.hasNext()){
+            while (itemIter.hasNext()) {
                 Component comp = itemIter.next();
-                if (comp instanceof WidgetComponent){
+                if (comp instanceof WidgetComponent) {
                     WidgetComponent widgetComp = (WidgetComponent) comp;
-                    if (widgetComp.getWidget() instanceof HTMLMenuItem){
+                    if (widgetComp.getWidget() instanceof HTMLMenuItem) {
                         HTMLMenuItem item = (HTMLMenuItem) widgetComp.getWidget();
                         MenuBean menuBean = item.getMenuBean();
-                        if (context.equals(menuBean.getContext()) && application.equals(menuBean.getApplication())){
+                        if (context.equals(menuBean.getContext()) && application.equals(menuBean.getApplication())) {
                             item.setDisabled(disabled);
                         }
                     }
@@ -204,6 +217,7 @@ public class AccordionMenus extends ContentPanel {
 
     ClickHandler clickHander = new ClickHandler() {
 
+        @Override
         public void onClick(ClickEvent event) {
             final HTMLMenuItem item = (HTMLMenuItem) event.getSource();
             final MenuBean menuBean = item.getMenuBean();
@@ -211,27 +225,28 @@ public class AccordionMenus extends ContentPanel {
                 MessageBox.alert(null, menuBean.getDisabledDesc(), null);
                 return;
             }
-            if (!menuBean.getContext().toLowerCase().equals("licensemanager")) //$NON-NLS-1$
+            if (!menuBean.getContext().toLowerCase().equals("licensemanager")) {
                 service.isExpired(UrlUtil.getLanguage(), new SessionAwareAsyncCallback<Boolean>() {
 
+                    @Override
                     public void onSuccess(Boolean result) {
                         if (!result) {
                             clickMenu(menuBean, item);
                         }
                     }
-                    
+
                     @Override
                     protected void doOnFailure(final Throwable caught) {
-                        if (menuBean.getContext().toLowerCase().equals("usermanager") &&  //$NON-NLS-1$
+                        if (menuBean.getContext().toLowerCase().equals("usermanager") && //$NON-NLS-1$
                                 caught != null && caught instanceof LicenseUserNumberValidationException) {
                             clickMenu(menuBean, item);
                         } else {
-                            super.doOnFailure(caught);    
+                            super.doOnFailure(caught);
                         }
                     }
 
                 });
-            else {
+            } else {
                 clickMenu(menuBean, item);
             }
         }
@@ -291,5 +306,9 @@ public class AccordionMenus extends ContentPanel {
     interface GetUrl {
 
         void getUrl(String url);
+    }
+
+    public HTMLMenuItem getWelcomeportalItem() {
+        return this.welcomeportalItem;
     }
 }

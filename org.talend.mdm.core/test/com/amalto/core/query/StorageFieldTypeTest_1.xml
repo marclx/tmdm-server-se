@@ -8,7 +8,7 @@
     <dateTime>2010-01-01T00:00:00</dateTime>
     <decimal>789789789</decimal>
     <double>500000</double>
-    <duration>49:00:00</duration>
+    <duration>P5Y2M10D</duration>
     <float>30.09</float>
     <hexBinary>01EEFF</hexBinary>
     <int>9</int>

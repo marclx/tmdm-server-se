@@ -271,7 +271,7 @@ public class RoutingEngineV2CtrlBean implements SessionBean, TimedObject, Routin
                         LOGGER.debug(condition + " : " + truth);
                     }
                     if (truth) {
-                        LOGGER.info("Rule \"" + (routingRule.getName() == null ? "" : routingRule.getName()) + "\" matched! ");
+                        LOGGER.info("Trigger \"" + (routingRule.getName() == null ? "" : routingRule.getName()) + "\" matched! ");
                     }
                     if (!truth) {
                         continue;
@@ -316,7 +316,7 @@ public class RoutingEngineV2CtrlBean implements SessionBean, TimedObject, Routin
                     routingRule.isSynchronous() ? now.getTime() : now.getTime() + DELAY, itemPOJOPK, "Routing of '"
                             + itemPOJOPK.getUniqueID() + "' to service '"
                             + routingRule.getServiceJNDI().replaceFirst("amalto/local/service/", "") + "'"
-                            + " triggered by rule '" + routingRule.getPK().getUniqueId() + "'", routingRule.getServiceJNDI(),
+                            + " activated by trigger '" + routingRule.getPK().getUniqueId() + "'", routingRule.getServiceJNDI(),
                     routingRule.getParameters(), bindingUniverseName, bindingUserToken);
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Routing Order " + routingOrderPOJO.getName() + " bind universe "
@@ -327,14 +327,14 @@ public class RoutingEngineV2CtrlBean implements SessionBean, TimedObject, Routin
                 if (RoutingEngineV2POJO.getInstance().getStatus() == RoutingEngineV2POJO.RUNNING
                         || Boolean.valueOf(MDMConfiguration.getConfiguration().getProperty(
                                 "routing.engine.rules.runsynconpause", "false"))) { //$NON-NLS-1$ //$NON-NLS-2$
-                    LOGGER.info("Rule \"" + (routingRule.getName() == null ? "" : routingRule.getName()) + "\" triggered! ");
+                    LOGGER.info("Trigger \"" + (routingRule.getName() == null ? "" : routingRule.getName()) + "\" activated! ");
                     routingOrderCtrl.executeSynchronously(routingOrderPOJO);
                     continue;
                 }
             }
             // save the routing order for later routing
             routingOrderCtrl.putRoutingOrder(routingOrderPOJO);
-            LOGGER.info("Rule \"" + (routingRule.getName() == null ? "" : routingRule.getName()) + "\" triggered! ");
+            LOGGER.info("Trigger \"" + (routingRule.getName() == null ? "" : routingRule.getName()) + "\" activated! ");
             // make sure that the thread is started
             if (RoutingEngineV2POJO.getInstance().getStatus() == RoutingEngineV2POJO.RUNNING) {
                 Collection<Timer> timers = context.getTimerService().getTimers();

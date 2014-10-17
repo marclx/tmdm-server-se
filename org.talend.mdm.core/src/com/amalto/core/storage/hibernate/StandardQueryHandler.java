@@ -475,6 +475,19 @@ class StandardQueryHandler extends AbstractQueryHandler {
         boolean hasPaging = pageSize < Integer.MAX_VALUE;
         // Results
         if (!hasPaging) {
+            if (storage instanceof HibernateStorage) {
+                RDBMSDataSource dataSource = (RDBMSDataSource) storage.getDataSource();
+                if (dataSource.getDialectName() == RDBMSDataSource.DataSourceDialect.DB2) {
+                    // TMDM-7701: DB2 doesn't like use of SCROLL_INSENSITIVE for projections including a CLOB.
+                    if (select.isProjection()) {
+                        return createResults(criteria.scroll(ScrollMode.FORWARD_ONLY), true);
+                    } else {
+                        return createResults(criteria.scroll(ScrollMode.SCROLL_INSENSITIVE), false);
+                    }
+                } else {
+                    return createResults(criteria.scroll(ScrollMode.SCROLL_INSENSITIVE), select.isProjection());
+                }
+            }
             return createResults(criteria.scroll(ScrollMode.SCROLL_INSENSITIVE), select.isProjection());
         } else {
             List list = criteria.list();
@@ -723,7 +736,8 @@ class StandardQueryHandler extends AbstractQueryHandler {
 
         @Override
         public Criterion visit(IsNull isNull) {
-            FieldCondition fieldCondition = isNull.getField().accept(visitor);
+            TypedExpression field = isNull.getField();
+            FieldCondition fieldCondition = field.accept(visitor);
             if (fieldCondition == null) {
                 return TRUE_CRITERION;
             }
@@ -731,15 +745,29 @@ class StandardQueryHandler extends AbstractQueryHandler {
                 throw new UnsupportedOperationException("Does not support 'is null' operation on collections.");
             }
             if (fieldCondition.criterionFieldNames.isEmpty()) {
-                throw new IllegalStateException("No field name for 'is null' condition on " + isNull.getField());
+                throw new IllegalStateException("No field name for 'is null' condition on " + field);
             } else {
                 // Criterion affect multiple fields
                 Criterion current = null;
                 for (String criterionFieldName : fieldCondition.criterionFieldNames) {
-                    if (current == null) {
-                        current = Restrictions.isNull(criterionFieldName);
+                    Criterion criterion;
+                    if (field instanceof Field) {
+                        // TMDM-7700: Fix incorrect alias for isNull condition on FK (pick the FK's containing type
+                        // iso. the referenced type).
+                        FieldMetadata fieldMetadata = ((Field) field).getFieldMetadata();
+                        if (fieldMetadata.getContainingType().isInstantiable()) {
+                            String typeName = fieldMetadata.getEntityTypeName();
+                            criterion = Restrictions.isNull(typeName + '.' + fieldMetadata.getName());
+                        } else {
+                            criterion = Restrictions.isNull(criterionFieldName);
+                        }
                     } else {
-                        current = Restrictions.and(current, Restrictions.isNull(criterionFieldName));
+                        criterion = Restrictions.isNull(criterionFieldName);
+                    }
+                    if (current == null) {
+                        current = criterion;
+                    } else {
+                        current = Restrictions.and(current, criterion);
                     }
                 }
                 return current;

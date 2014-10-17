@@ -25,4 +25,6 @@ public interface FKField {
     public List<String> getForeignKeyInfo();
 
     public void setValue(ForeignKeyBean bean);
+    
+    public void setSuperValue(ForeignKeyBean bean);
 }

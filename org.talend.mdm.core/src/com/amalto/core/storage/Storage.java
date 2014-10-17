@@ -307,6 +307,13 @@ public interface Storage {
      */
     void adapt(MetadataRepository newRepository, boolean force);
 
+    /**
+     * @return <code>true</code> if the storage was closed, <code>false</code> otherwise.
+     * @see #close()
+     * @see #close(boolean)
+     */
+    boolean isClosed();
+
     enum FullTextSuggestion {
         /**
          * Returns keyword suggestion that start with a given set of characters.

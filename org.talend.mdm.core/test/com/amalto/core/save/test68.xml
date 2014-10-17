@@ -1,0 +1,5 @@
+<Product>
+    <Id>1</Id>
+    <Name>Old product name</Name>
+    <Availability>true</Availability>
+</Product>

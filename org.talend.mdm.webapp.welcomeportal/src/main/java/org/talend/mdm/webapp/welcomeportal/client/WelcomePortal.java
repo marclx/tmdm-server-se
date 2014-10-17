@@ -12,8 +12,6 @@
 // ============================================================================
 package org.talend.mdm.webapp.welcomeportal.client;
 
-import java.util.Map;
-
 import org.talend.mdm.webapp.base.client.ServiceEnhancer;
 import org.talend.mdm.webapp.welcomeportal.client.mvc.WelcomePortalController;
 
@@ -100,7 +98,7 @@ public class WelcomePortal implements EntryPoint {
 		}();
 
 		$wnd.amalto.core.refreshPortal = function(portalConfig) {
-			instance.@org.talend.mdm.webapp.welcomeportal.client.WelcomePortal::refreshPortal(Ljava/util/Map;)(portalConfig);
+			instance.@org.talend.mdm.webapp.welcomeportal.client.WelcomePortal::refreshPortal(Ljava/lang/String;)(portalConfig);
 		};
     }-*/;
 
@@ -184,7 +182,7 @@ public class WelcomePortal implements EntryPoint {
         dispatcher.getControllers().get(0).handleEvent(event);
     }
 
-    public void refreshPortal(Map<String, Boolean> portalConfig) {
+    public void refreshPortal(String portalConfig) {
         Dispatcher dispatcher = Dispatcher.get();
         AppEvent event = new AppEvent(WelcomePortalEvents.RefreshPortal, portalConfig);
         dispatcher.getControllers().get(0).handleEvent(event);

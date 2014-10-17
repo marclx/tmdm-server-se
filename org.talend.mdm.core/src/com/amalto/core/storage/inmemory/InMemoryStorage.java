@@ -42,6 +42,8 @@ public class InMemoryStorage implements Storage {
 
     private DataSource dataSource;
 
+    private boolean isClosed;
+
     @Override
     public Storage asInternal() {
         return this;
@@ -71,7 +73,7 @@ public class InMemoryStorage implements Storage {
     @Override
     public void prepare(MetadataRepository repository, boolean dropExistingData) {
         // Nothing to do
-        prepare(repository, Collections.<Expression> emptySet(), false, true);
+        prepare(repository, Collections.<Expression>emptySet(), false, true);
     }
 
     @Override
@@ -122,6 +124,7 @@ public class InMemoryStorage implements Storage {
     @Override
     public void close(boolean dropExistingData) {
         storage.clear();
+        isClosed = true;
     }
 
     @Override
@@ -180,6 +183,11 @@ public class InMemoryStorage implements Storage {
     @Override
     public void adapt(MetadataRepository newRepository, boolean force) {
         this.repository = newRepository;
+    }
+
+    @Override
+    public boolean isClosed() {
+        return isClosed;
     }
 
     private static interface ValueBuilder {

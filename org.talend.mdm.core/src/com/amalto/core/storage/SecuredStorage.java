@@ -162,4 +162,9 @@ public class SecuredStorage implements Storage {
         delegate.adapt(newRepository, force);
     }
 
+    @Override
+    public boolean isClosed() {
+        return delegate.isClosed();
+    }
+
 }

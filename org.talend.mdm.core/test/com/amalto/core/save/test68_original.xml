@@ -1,0 +1,27 @@
+<ii>
+    <c>Product</c>
+    <n>Product</n>
+    <dmn>Product</dmn>
+    <i>1</i>
+    <t>1328544306381</t>
+    <taskId/>
+    <p>
+        <Product>
+            <Id>1</Id>
+            <Name>Old product name</Name>
+            <Description>Description value</Description>
+            <Features>
+                <Sizes>
+                    <Size>Small</Size>
+                    <Size>X-Large</Size>
+                </Sizes>
+                <Colors>
+                    <Color>Lemon</Color>
+                    <Color>Light Blue</Color>
+                </Colors>
+            </Features>
+            <Price>60</Price>
+            <Stores></Stores>
+        </Product>
+    </p>
+</ii>

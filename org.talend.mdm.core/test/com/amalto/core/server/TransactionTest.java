@@ -302,6 +302,11 @@ public class TransactionTest extends TestCase {
         public void adapt(MetadataRepository newRepository, boolean force) {
         }
 
+        @Override
+        public boolean isClosed() {
+            return false;
+        }
+
         private class MockStorageTransaction extends StorageTransaction {
 
             @Override

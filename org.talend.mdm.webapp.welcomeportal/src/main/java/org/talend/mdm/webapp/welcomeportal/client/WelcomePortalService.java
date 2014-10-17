@@ -59,4 +59,14 @@ public interface WelcomePortalService extends RemoteService {
 
     public void savePortalConfig(PortalProperties config) throws ServiceException;
 
+    public void savePortalConfig(List<String> configs) throws ServiceException;
+
+    public void savePortalConfig(String key, String value) throws ServiceException;
+
+    public void savePortalConfig(String key, String portletName, String value) throws ServiceException;
+
+    public void savePortalConfigForClose(String portletName) throws ServiceException;
+
+    public void savePortalConfigAutoAndSetting(String portletName, List<String> coinfig) throws ServiceException;
+
 }

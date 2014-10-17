@@ -20,6 +20,7 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 import org.talend.mdm.webapp.base.client.exception.ServiceException;
+import org.talend.mdm.webapp.base.shared.Constants;
 import org.talend.mdm.webapp.welcomeportal.client.WelcomePortal;
 import org.talend.mdm.webapp.welcomeportal.client.WelcomePortalService;
 import org.talend.mdm.webapp.welcomeportal.client.mvc.PortalProperties;
@@ -63,10 +64,6 @@ public class WelcomePortalAction implements WelcomePortalService {
             "org.talend.mdm.webapp.welcomeportal.client.i18n.WelcomePortalMessages", WelcomePortalAction.class.getClassLoader()); //$NON-NLS-1$
 
     private PortalProperties portalConfig;
-
-    private String autoRefreshes;
-
-    private String chartSettings;
 
     /**
      * check if is show license link.
@@ -294,17 +291,25 @@ public class WelcomePortalAction implements WelcomePortalService {
     @Override
     public PortalProperties getPortalConfig() throws ServiceException {
 
-        Map<String, String> temp;
         try {
             ILocalUser user = LocalUser.getLocalUser();
             User parse = User.parse(user.getUserXML());
-            temp = parse.getProperties();
-            portalConfig = new PortalProperties(temp);
+            portalConfig = new PortalProperties(getPortalPreferences(parse.getProperties()));
             return portalConfig;
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
             throw new ServiceException(MESSAGES.getMessage("retrieve_portal_config_failed")); //$NON-NLS-1$
         }
+    }
+
+    private Map<String, String> getPortalPreferences(Map<String, String> props) {
+        Map<String, String> portalConfigs = new HashMap<String, String>();
+        for (String key : props.keySet()) {
+            if (key.startsWith(Constants.PORTAL_CONFIG_PREFIX)) {
+                portalConfigs.put(key, props.get(key));
+            }
+        }
+        return portalConfigs;
     }
 
     @Override
@@ -323,6 +328,8 @@ public class WelcomePortalAction implements WelcomePortalService {
                     .putItem(
                             new WSPutItem(
                                     new WSDataClusterPK("PROVISIONING"), parsedUser.serialize(), new WSDataModelPK("PROVISIONING"), false)); //$NON-NLS-1$ //$NON-NLS-2$
+
+            user.setUserXML(parsedUser.serialize());
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
             String details = e.getMessage();
@@ -330,6 +337,127 @@ public class WelcomePortalAction implements WelcomePortalService {
             if (!details.contains("com.amalto.core.util.license.LicenseValidationException")) { //$NON-NLS-1$
                 throw new ServiceException(MESSAGES.getMessage("save_portal_config_failed")); //$NON-NLS-1$
             }
+        }
+    }
+
+    @Override
+    public void savePortalConfig(String key, String value) throws ServiceException {
+        try {
+            ILocalUser user = LocalUser.getLocalUser();
+            User parsedUser = User.parse(user.getUserXML());
+            Map<String, String> properties = parsedUser.getProperties();
+
+            properties.put(key, value);
+            Util.getPort()
+                    .putItem(
+                            new WSPutItem(
+                                    new WSDataClusterPK("PROVISIONING"), parsedUser.serialize(), new WSDataModelPK("PROVISIONING"), false)); //$NON-NLS-1$ //$NON-NLS-2$
+
+            user.setUserXML(parsedUser.serialize());
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            throw new ServiceException(MESSAGES.getMessage("save_portal_config_failed")); //$NON-NLS-1$
+        }
+    }
+
+    @Override
+    public void savePortalConfig(String key, String portletName, String value) throws ServiceException {
+        try {
+            ILocalUser user = LocalUser.getLocalUser();
+            User parsedUser = User.parse(user.getUserXML());
+            Map<String, String> properties = parsedUser.getProperties();
+
+            portalConfig = new PortalProperties(getPortalPreferences(parsedUser.getProperties()));
+
+            portalConfig.add(key, portletName, value);
+
+            properties.put(key, portalConfig.get(key));
+            Util.getPort()
+                    .putItem(
+                            new WSPutItem(
+                                    new WSDataClusterPK("PROVISIONING"), parsedUser.serialize(), new WSDataModelPK("PROVISIONING"), false)); //$NON-NLS-1$ //$NON-NLS-2$
+
+            user.setUserXML(parsedUser.serialize());
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            throw new ServiceException(MESSAGES.getMessage("save_portal_config_failed")); //$NON-NLS-1$
+        }
+    }
+
+    @Override
+    public void savePortalConfigForClose(String portletName) throws ServiceException {
+        try {
+            ILocalUser user = LocalUser.getLocalUser();
+            User parsedUser = User.parse(user.getUserXML());
+            Map<String, String> properties = parsedUser.getProperties();
+
+            portalConfig = new PortalProperties(getPortalPreferences(parsedUser.getProperties()));
+
+            portalConfig.add(PortalProperties.KEY_PORTLET_VISIBILITIES, portletName, ((Boolean) false).toString());
+            portalConfig.add(PortalProperties.KEY_AUTO_ONOFFS, portletName, ((Boolean) false).toString());
+
+            properties
+                    .put(PortalProperties.KEY_PORTLET_VISIBILITIES, portalConfig.get(PortalProperties.KEY_PORTLET_VISIBILITIES));
+            properties.put(PortalProperties.KEY_AUTO_ONOFFS, portalConfig.get(PortalProperties.KEY_AUTO_ONOFFS));
+            Util.getPort()
+                    .putItem(
+                            new WSPutItem(
+                                    new WSDataClusterPK("PROVISIONING"), parsedUser.serialize(), new WSDataModelPK("PROVISIONING"), false)); //$NON-NLS-1$ //$NON-NLS-2$
+
+            user.setUserXML(parsedUser.serialize());
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            throw new ServiceException(MESSAGES.getMessage("save_portal_config_failed")); //$NON-NLS-1$
+        }
+    }
+
+    @Override
+    public void savePortalConfigAutoAndSetting(String portletName, List<String> coinfig) throws ServiceException {
+        assert coinfig.size() == 2;
+        try {
+            ILocalUser user = LocalUser.getLocalUser();
+            User parsedUser = User.parse(user.getUserXML());
+            Map<String, String> properties = parsedUser.getProperties();
+
+            portalConfig = new PortalProperties(getPortalPreferences(parsedUser.getProperties()));
+
+            portalConfig.add(PortalProperties.KEY_AUTO_ONOFFS, portletName, coinfig.get(0));
+            portalConfig.add(PortalProperties.KEY_CHART_SETTINGS, portletName, coinfig.get(1));
+
+            properties.put(PortalProperties.KEY_AUTO_ONOFFS, portalConfig.get(PortalProperties.KEY_AUTO_ONOFFS));
+            properties.put(PortalProperties.KEY_CHART_SETTINGS, portalConfig.get(PortalProperties.KEY_CHART_SETTINGS));
+            Util.getPort()
+                    .putItem(
+                            new WSPutItem(
+                                    new WSDataClusterPK("PROVISIONING"), parsedUser.serialize(), new WSDataModelPK("PROVISIONING"), false)); //$NON-NLS-1$ //$NON-NLS-2$
+
+            user.setUserXML(parsedUser.serialize());
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            throw new ServiceException(MESSAGES.getMessage("save_portal_config_failed")); //$NON-NLS-1$
+        }
+    }
+
+    @Override
+    public void savePortalConfig(List<String> config) throws ServiceException {
+        try {
+            ILocalUser user = LocalUser.getLocalUser();
+            User parsedUser = User.parse(user.getUserXML());
+            Map<String, String> properties = parsedUser.getProperties();
+            boolean debug = false;
+
+            properties.put(PortalProperties.KEY_PORTLET_VISIBILITIES, config.get(0));
+            properties.put(PortalProperties.KEY_AUTO_ONOFFS, config.get(1));
+
+            Util.getPort()
+                    .putItem(
+                            new WSPutItem(
+                                    new WSDataClusterPK("PROVISIONING"), parsedUser.serialize(), new WSDataModelPK("PROVISIONING"), false)); //$NON-NLS-1$ //$NON-NLS-2$
+
+            user.setUserXML(parsedUser.serialize());
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+            throw new ServiceException(MESSAGES.getMessage("save_portal_config_failed")); //$NON-NLS-1$
         }
     }
 }

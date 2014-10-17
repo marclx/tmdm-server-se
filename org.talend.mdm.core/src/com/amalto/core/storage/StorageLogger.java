@@ -191,4 +191,9 @@ public class StorageLogger implements Storage {
     public void adapt(MetadataRepository newRepository, boolean force) {
         delegate.adapt(newRepository, force);
     }
+
+    @Override
+    public boolean isClosed() {
+        return delegate.isClosed();
+    }
 }

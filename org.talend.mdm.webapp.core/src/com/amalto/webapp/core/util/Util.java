@@ -1309,8 +1309,8 @@ public class Util {
             return;
         }
         if (Webapp.INSTANCE.isEnterpriseVersion()) {
+            ILocalUser localUser = LocalUser.getLocalUser();
             for (String viewInstanceId : viewMap.keySet()) {
-                ILocalUser localUser = LocalUser.getLocalUser();
                 if (!localUser.userCanWrite(ViewPOJO.class, viewInstanceId)
                         && !localUser.userCanRead(ViewPOJO.class, viewInstanceId)) {
                     viewMap.remove(viewInstanceId);

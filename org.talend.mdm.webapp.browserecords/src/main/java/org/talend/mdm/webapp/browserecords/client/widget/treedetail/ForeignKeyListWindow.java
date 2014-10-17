@@ -377,6 +377,10 @@ public class ForeignKeyListWindow extends Window {
 
                 typeModel.setForeignKeyInfo(fkinfo);
                 loader.load(0, pageSize);
+                if(entityModel != null && targetEntity != null && !targetEntity.equals(entityModel.getConceptName())){
+                    fkDrawer = CommonUtil.switchForeignKeyEntityType(entityModel.getConceptName(), typeModel.getForeignkey(), fkInfo); 
+                    typeModel.setForeignkey(fkDrawer.getXpathForeignKey());
+                }
             }
         });
         toolBar.add(typeComboBox);
@@ -499,6 +503,7 @@ public class ForeignKeyListWindow extends Window {
                 fkBean.setForeignKeyPath(xPath);
                 CommonUtil.setForeignKeyDisplayInfo(fkBean);
                 returnCriteriaFK.setCriteriaFK(fkBean);
+                typeComboBox.setRawValue(null);
                 closeOrHideWindow();
             }
         });
@@ -538,6 +543,10 @@ public class ForeignKeyListWindow extends Window {
 
     public void setCurrentXpath(String currentXpath) {
         this.currentXpath = currentXpath;
+    }
+
+    public ComboBoxField<BaseModel> getTypeComboBox() {
+        return this.typeComboBox;
     }
 
 }

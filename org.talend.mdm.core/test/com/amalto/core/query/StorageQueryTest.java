@@ -3139,7 +3139,36 @@ public class StorageQueryTest extends StorageTestCase {
         } finally {
             results.close();
         }
+        qb = from(country).where(contains(country.getField("name"), "france"));
+        results = s1.fetch(qb.getSelect());
+        try {
+            assertEquals(0, results.getCount());
+        } finally {
+            results.close();
+        }
+        qb = from(country).where(contains(country.getField("name"), "France"));
+        results = s1.fetch(qb.getSelect());
+        try {
+            assertEquals(1, results.getCount());
+        } finally {
+            results.close();
+        }
+        // DS2
         qb = from(country).where(contains(country.getField("name"), "FRANCE"));
+        results = s2.fetch(qb.getSelect());
+        try {
+            assertEquals(1, results.getCount());
+        } finally {
+            results.close();
+        }
+        qb = from(country).where(contains(country.getField("name"), "france"));
+        results = s2.fetch(qb.getSelect());
+        try {
+            assertEquals(1, results.getCount());
+        } finally {
+            results.close();
+        }
+        qb = from(country).where(contains(country.getField("name"), "France"));
         results = s2.fetch(qb.getSelect());
         try {
             assertEquals(1, results.getCount());
@@ -3799,6 +3828,17 @@ public class StorageQueryTest extends StorageTestCase {
         } finally {
             results.close();
         }
+        qb = from(person).selectId(person).select(person.getField("firstname")).select(timestamp()).select(taskId())
+                .where(contains(person.getField("firstname"), "Jul"));
+        results = storage.fetch(qb.getSelect());
+        try {
+            for (DataRecord result : results) {
+                assertNotNull(result.get("metadata:timestamp"));
+                assertTrue(((Long) result.get("metadata:timestamp")) > 0);
+            }
+        } finally {
+            results.close();
+        }
     }
 
     public void testCountProjection() throws Exception {
@@ -3923,6 +3963,40 @@ public class StorageQueryTest extends StorageTestCase {
         qb = from(ContainedEntityB).where(contains(ContainedEntityB.getField("id"), "B_record2"));
         storage.begin();
         storage.delete(qb.getSelect());
+        storage.commit();
+    }
+
+    public void testEmptyOrNullOnFK() throws Exception {
+        FieldMetadata field = address.getField("country");
+
+        UserQueryBuilder qb = from(address).where(isNull(field));
+        storage.begin();
+        StorageResults results = storage.fetch(qb.getSelect());
+        try {
+            assertEquals(0, results.getCount());
+        } finally {
+            results.close();
+        }
+        storage.commit();
+
+        qb = from(address).where(or(isNull(field), isEmpty(field)));
+        storage.begin();
+        results = storage.fetch(qb.getSelect());
+        try {
+            assertEquals(0, results.getCount());
+        } finally {
+            results.close();
+        }
+        storage.commit();
+        
+        qb = from(address).where(emptyOrNull(field));
+        storage.begin();
+        results = storage.fetch(qb.getSelect());
+        try {
+            assertEquals(0, results.getCount());
+        } finally {
+            results.close();
+        }
         storage.commit();
     }
 

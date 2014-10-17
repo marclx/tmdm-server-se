@@ -172,7 +172,6 @@ public class DefaultStorageClassLoader extends StorageClassLoader {
             addProperty(document, sessionFactoryElement, "hibernate.search.default.source", ""); //$NON-NLS-1$ //$NON-NLS-2$
             addProperty(document, sessionFactoryElement, "hibernate.search.default.exclusive_index_use", "false"); //$NON-NLS-1$ //$NON-NLS-2$
             addProperty(document, sessionFactoryElement, "hibernate.search.analyzer", "com.amalto.core.storage.hibernate.MDMStandardAnalyzer"); //$NON-NLS-1$ //$NON-NLS-2$
-            
         }
 
         if (dataSource.getCacheDirectory() != null && !dataSource.getCacheDirectory().isEmpty()) {

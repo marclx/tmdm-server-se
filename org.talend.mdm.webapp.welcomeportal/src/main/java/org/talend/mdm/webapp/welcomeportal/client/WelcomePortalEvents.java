@@ -24,4 +24,7 @@ public class WelcomePortalEvents {
     public static final EventType RefreshPortlet = new EventType();
 
     public static final EventType RefreshPortal = new EventType();
+
+    // for db storing failure started by switching to diff column number or chartsSwitherUpdated
+    public static final EventType RevertRefreshPortal = new EventType();
 }

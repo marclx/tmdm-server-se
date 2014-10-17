@@ -15,12 +15,16 @@ import static com.amalto.core.query.user.UserQueryBuilder.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import com.amalto.core.ejb.ObjectPOJO;
-import com.amalto.xmlserver.interfaces.ItemPKCriteria;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.talend.mdm.commmon.metadata.ComplexTypeMetadata;
@@ -35,6 +39,7 @@ import org.w3c.dom.Element;
 import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
 
+import com.amalto.core.ejb.ObjectPOJO;
 import com.amalto.core.metadata.ClassRepository;
 import com.amalto.core.query.user.Select;
 import com.amalto.core.query.user.UserQueryBuilder;
@@ -48,6 +53,7 @@ import com.amalto.core.storage.record.DataRecordXmlWriter;
 import com.amalto.core.storage.record.SystemDataRecordXmlWriter;
 import com.amalto.core.storage.record.XmlDOMDataRecordReader;
 import com.amalto.core.storage.record.XmlSAXDataRecordReader;
+import com.amalto.xmlserver.interfaces.ItemPKCriteria;
 import com.amalto.xmlserver.interfaces.XmlServerException;
 
 public class SystemStorageWrapper extends StorageWrapper {
@@ -65,7 +71,7 @@ public class SystemStorageWrapper extends StorageWrapper {
     private static final String FAILED_ROUTING_ORDER = "failed-routing-order-v2-pOJO"; //$NON-NLS-1$
 
     private static final String ACTIVE_ROUTING_ORDER = "active-routing-order-v2-pOJO"; //$NON-NLS-1$
-    
+
     private static final String SYNCHRONIZATION_OBJECT_TYPE = "synchronization-object-pOJO"; //$NON-NLS-1$
 
     private static final String PROVISIONING_PREFIX_INFO = "PROVISIONING.User."; //$NON-NLS-1$
@@ -127,7 +133,7 @@ public class SystemStorageWrapper extends StorageWrapper {
             if (typeName != null && !typeName.isEmpty()) {
                 String internalTypeName = typeName;
                 String objectRootElementName = ObjectPOJO.getObjectRootElementName(typeName);
-                if(objectRootElementName != null) {
+                if (objectRootElementName != null) {
                     internalTypeName = objectRootElementName;
                 }
                 totalCount = getTypeItemCount(criteria, repository.getComplexType(internalTypeName), storage);
@@ -136,18 +142,25 @@ public class SystemStorageWrapper extends StorageWrapper {
                 // TMDM-4651: Returns type in correct dependency order.
                 Collection<ComplexTypeMetadata> types = getClusterTypes(clusterName, criteria.getRevisionId());
                 int maxCount = criteria.getMaxItems();
-                if(criteria.getSkip() < 0) { // MDM Studio may send negative values
+                if (criteria.getSkip() < 0) { // MDM Studio may send negative values
                     criteria.setSkip(0);
                 }
                 List<String> currentInstanceResults;
+                String objectRootElementName;
                 for (ComplexTypeMetadata type : types) {
-                    int count = getTypeItemCount(criteria, type, storage);
+                    String internalTypeName = type.getName();
+                    objectRootElementName = ObjectPOJO.getObjectRootElementName(internalTypeName);
+                    if (objectRootElementName != null) {
+                        internalTypeName = objectRootElementName;
+                    }
+                    int count = getTypeItemCount(criteria, repository.getComplexType(internalTypeName), storage);
                     totalCount += count;
-                    if(itemPKResults.size() < maxCount) {
-                        if(count > criteria.getSkip()) {
-                            currentInstanceResults = getTypeItems(criteria, type, storage, typeName);
+                    if (itemPKResults.size() < maxCount) {
+                        if (count > criteria.getSkip()) {
+                            currentInstanceResults = getTypeItems(criteria, repository.getComplexType(internalTypeName), storage,
+                                    type.getName());
                             int n = maxCount - itemPKResults.size();
-                            if (n <= currentInstanceResults.size()){
+                            if (n <= currentInstanceResults.size()) {
                                 itemPKResults.addAll(currentInstanceResults.subList(0, n));
                             } else {
                                 itemPKResults.addAll(currentInstanceResults);
@@ -160,7 +173,7 @@ public class SystemStorageWrapper extends StorageWrapper {
                     }
                 }
             }
-            itemPKResults.add(0, "<totalCount>" + totalCount + "</totalCount>");  //$NON-NLS-1$ //$NON-NLS-2$
+            itemPKResults.add(0, "<totalCount>" + totalCount + "</totalCount>"); //$NON-NLS-1$ //$NON-NLS-2$
         } finally {
             storage.commit();
         }
@@ -375,7 +388,7 @@ public class SystemStorageWrapper extends StorageWrapper {
         boolean isUserFormat;
         if (DROPPED_ITEM_TYPE.equals(type.getName())) {
             isUserFormat = false;
-            // head.Product.Product.0-   (but DM1.Bird.bid3)
+            // head.Product.Product.0- (but DM1.Bird.bid3)
             if (uniqueID.endsWith("-")) { //$NON-NLS-1$
                 uniqueID = uniqueID.substring(0, uniqueID.length() - 1);
             }
@@ -473,7 +486,8 @@ public class SystemStorageWrapper extends StorageWrapper {
             // String revisionId = StringUtils.substringBefore(uniqueID, ".");
             uniqueID = StringUtils.substringAfter(uniqueID, "."); //$NON-NLS-1$
         } else if (!COMPLETED_ROUTING_ORDER.equals(type.getName()) && !FAILED_ROUTING_ORDER.equals(type.getName())
-                && !ACTIVE_ROUTING_ORDER.equals(type.getName()) && !CUSTOM_FORM_TYPE.equals(type.getName()) && !SYNCHRONIZATION_OBJECT_TYPE.equals(type.getName())) {
+                && !ACTIVE_ROUTING_ORDER.equals(type.getName()) && !CUSTOM_FORM_TYPE.equals(type.getName())
+                && !SYNCHRONIZATION_OBJECT_TYPE.equals(type.getName())) {
             if (uniqueID.startsWith(PROVISIONING_PREFIX_INFO)) {
                 uniqueID = StringUtils.substringAfter(uniqueID, PROVISIONING_PREFIX_INFO);
             } else if (uniqueID.contains(".")) { //$NON-NLS-1$

@@ -20,7 +20,7 @@ import com.amalto.core.query.user.UserStagingQueryBuilder;
 import com.amalto.core.query.user.Visitor;
 import com.amalto.core.storage.Storage;
 
-public class StagingSource implements TypedExpression, MetadataField {
+public class StagingSource implements MetadataField {
 
     public static final StagingSource INSTANCE = new StagingSource();
 

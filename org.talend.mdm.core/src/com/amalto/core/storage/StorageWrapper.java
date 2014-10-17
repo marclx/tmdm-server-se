@@ -709,7 +709,7 @@ public class StorageWrapper implements IXmlServerSLWrapper {
         }
         // Content keywords
         String contentKeywords = criteria.getContentKeywords();
-        if (contentKeywords != null) {
+        if (contentKeywords != null && !contentKeywords.isEmpty()) {
             if (criteria.isUseFTSearch()) {
                 qb.where(fullText(contentKeywords));
             } else {
@@ -725,7 +725,9 @@ public class StorageWrapper implements IXmlServerSLWrapper {
                         }
                     }
                 }
-                qb.where(condition);
+                if(condition != null) {
+                  qb.where(condition);
+                }
             }
         }
         

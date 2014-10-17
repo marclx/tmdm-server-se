@@ -42,6 +42,7 @@ public class StorageFieldTypeTest extends StorageTestCase {
         DURATION,
         BINARY,
         DATE,
+        TIME,
         NEGATIVE_NUMERIC,
         DATETIME
     }
@@ -137,8 +138,8 @@ public class StorageFieldTypeTest extends StorageTestCase {
 
     public void testTime() throws Exception {
         testSimpleQuery("time");
-        testSimpleSearch("time", Type.DURATION);
-        testMDMSearch("time", Type.DURATION);
+        testSimpleSearch("time", Type.TIME);
+        testMDMSearch("time", Type.TIME);
     }
 
     public void testDate() throws Exception {
@@ -280,6 +281,9 @@ public class StorageFieldTypeTest extends StorageTestCase {
             qb = qb.where(gt(type.getField(typeName), "1970-01-01"));
             break;
         case DURATION:
+            qb = qb.where(eq(type.getField(typeName), "P5Y2M10D"));
+            break;
+        case TIME:
             qb = qb.where(gt(type.getField(typeName), "00:00:00"));
             break;
         case BINARY:
@@ -328,6 +332,10 @@ public class StorageFieldTypeTest extends StorageTestCase {
                     "1970-01-01", WhereCondition.NO_OPERATOR)));
             break;
         case DURATION:
+            item = new WhereAnd(Arrays.<IWhereItem> asList(new WhereCondition(fieldName, WhereCondition.EQUALS, "P5Y2M10D",
+                    WhereCondition.NO_OPERATOR)));
+            break;
+        case TIME:
             item = new WhereAnd(Arrays.<IWhereItem> asList(new WhereCondition(fieldName, WhereCondition.GREATER_THAN, "00:00:00",
                     WhereCondition.NO_OPERATOR)));
             break;

@@ -1695,7 +1695,7 @@ public class Util {
                     if (outputErrorMessage != null && outputErrorMessage.length() > 0) {
                         Document doc = Util.parse(outputErrorMessage);
                         // TODO what if multiple error nodes ?
-                        String xpath = "/report/message"; //$NON-NLS-1$
+                        String xpath = "//report/message"; //$NON-NLS-1$
                         Node errorNode = (Node) XPathFactory.newInstance().newXPath().evaluate(xpath, doc, XPathConstants.NODE);
                         if (errorNode instanceof Element) {
                             Element errorElement = (Element) errorNode;

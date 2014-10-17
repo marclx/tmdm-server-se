@@ -1,0 +1,6 @@
+<EntiteA xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <codeA>id4</codeA>
+    <format xsi:type="Format_Date">
+        <SysFormat>test</SysFormat>
+    </format>
+</EntiteA>

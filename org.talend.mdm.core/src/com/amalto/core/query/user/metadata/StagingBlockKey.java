@@ -20,7 +20,7 @@ import com.amalto.core.query.user.UserStagingQueryBuilder;
 import com.amalto.core.query.user.Visitor;
 import com.amalto.core.storage.Storage;
 
-public class StagingBlockKey implements TypedExpression, MetadataField {
+public class StagingBlockKey implements MetadataField {
 
     public static final StagingBlockKey INSTANCE = new StagingBlockKey();
 

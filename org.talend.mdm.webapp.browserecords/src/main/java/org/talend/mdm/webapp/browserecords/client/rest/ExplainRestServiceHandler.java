@@ -26,15 +26,12 @@ import org.restlet.client.data.Method;
 import org.restlet.client.ext.json.JsonRepresentation;
 import org.restlet.client.representation.StringRepresentation;
 import org.talend.mdm.webapp.base.client.SessionAwareAsyncCallback;
-import org.talend.mdm.webapp.base.client.i18n.BaseMessagesFactory;
 import org.talend.mdm.webapp.base.client.rest.ClientResourceWrapper;
 import org.talend.mdm.webapp.base.client.rest.ResourceSessionAwareCallbackHandler;
 import org.talend.mdm.webapp.base.client.rest.RestServiceHelper;
-import org.talend.mdm.webapp.browserecords.client.i18n.MessagesFactory;
 import org.talend.mdm.webapp.browserecords.client.util.StagingConstant;
 
 import com.extjs.gxt.ui.client.data.BaseTreeModel;
-import com.extjs.gxt.ui.client.widget.MessageBox;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
@@ -62,7 +59,7 @@ public class ExplainRestServiceHandler {
         this.client = client;
     }
 
-    public void explainGroupResult(String dataCluster, final String concept, String groupId,
+    public void explainGroupResult(String dataCluster, String concept, String groupId,
             final SessionAwareAsyncCallback<BaseTreeModel> callback) {
         if (dataCluster == null || dataCluster.isEmpty() || concept == null || concept.isEmpty() || groupId == null
                 || groupId.isEmpty()) {
@@ -83,17 +80,14 @@ public class ExplainRestServiceHandler {
                 JsonRepresentation jsonRepresentation = RestServiceHelper.getJsonRepresentationFromResponse(response);
                 if (jsonRepresentation != null) {
                     result = buildGroupResultFromJsonRepresentation(jsonRepresentation);
-                    callback.onSuccess(result);
-                } else {
-                    MessageBox.alert(MessagesFactory.getMessages().warning_title(), BaseMessagesFactory.getMessages()
-                            .matching_failed(concept), null);
                 }
+                callback.onSuccess(result);
             }
         });
         client.request();
     }
 
-    public void simulateMatch(String dataCluster, final String concept, String ids,
+    public void simulateMatch(String dataCluster, String concept, String ids,
             final SessionAwareAsyncCallback<BaseTreeModel> callback) {
         if (dataCluster == null || dataCluster.isEmpty() || concept == null || concept.isEmpty()) {
             throw new IllegalArgumentException();
@@ -114,17 +108,14 @@ public class ExplainRestServiceHandler {
                 JsonRepresentation jsonRepresentation = RestServiceHelper.getJsonRepresentationFromResponse(response);
                 if (jsonRepresentation != null) {
                     result = buildGroupResultFromJsonRepresentation(jsonRepresentation);
-                    callback.onSuccess(result);
-                } else {
-                    MessageBox.alert(MessagesFactory.getMessages().warning_title(), BaseMessagesFactory.getMessages()
-                            .matching_failed(concept), null);
                 }
+                callback.onSuccess(result);
             }
         });
         client.request(MediaType.TEXT_PLAIN);
     }
 
-    public void compareRecords(String dataModel, final String concept, String recordXml,
+    public void compareRecords(String dataModel, String concept, String recordXml,
             final SessionAwareAsyncCallback<BaseTreeModel> callback) {
         if (dataModel == null || dataModel.isEmpty() || concept == null || concept.isEmpty()) {
             throw new IllegalArgumentException();
@@ -144,15 +135,10 @@ public class ExplainRestServiceHandler {
                 JsonRepresentation jsonRepresentation = RestServiceHelper.getJsonRepresentationFromResponse(response);
                 if (jsonRepresentation != null) {
                     JSONObject jsonObject = jsonRepresentation.getJsonObject();
-                    if (jsonObject != null) {
-                        JSONValue jsonValue = jsonObject.get(StagingConstant.MATCH_ROOT_NAME);
-                        result = buildTreeModelFromJsonRepresentation(jsonValue);
-                        callback.onSuccess(result);
-                    } else {
-                        MessageBox.alert(MessagesFactory.getMessages().warning_title(), BaseMessagesFactory.getMessages()
-                                .matching_failed(concept), null);
-                    }
+                    JSONValue jsonValue = jsonObject.get(StagingConstant.MATCH_ROOT_NAME);
+                    result = buildTreeModelFromJsonRepresentation(jsonValue);
                 }
+                callback.onSuccess(result);
             }
         });
         client.request(MediaType.APPLICATION_XML);
@@ -177,53 +163,56 @@ public class ExplainRestServiceHandler {
     }
 
     private void buildGroupNode(JSONValue value, final BaseTreeModel parent, int index) {
-        JSONArray groupArray = getChildArrayByParent(value, StagingConstant.MATCH_GROUP_NAME);
+        JSONArray groupArray = getJSONArray(value, StagingConstant.MATCH_GROUP_NAME);
         if (groupArray != null) {
             final BaseTreeModel group = new BaseTreeModel();
             group.set(StagingConstant.MATCH_DATA, buildTreeModelFromJsonRepresentation(value).getChild(0));
             group.setParent(parent);
             JSONValue resultValue = groupArray.get(0);
-            JSONArray resultArray = getChildArrayByParent(resultValue, "result"); //$NON-NLS-1$
+            JSONArray resultArray = getJSONArray(resultValue, "result"); //$NON-NLS-1$
             if (resultArray != null) {
                 group.set(StagingConstant.MATCH_IS_GROUP, true);
                 group.set(StagingConstant.MATCH_GROUP_NAME, StagingConstant.MATCH_GROUP_NAME + (index + 1));
-                JSONArray relatedIdArray = resultArray.get(2).isObject().get(StagingConstant.MATCH_RELATED_IDS).isArray();
-                List<String> idList = new ArrayList<String>();
-                for (int i = 0; i < relatedIdArray.size(); i++) {
-                    idList.add(getStringValue(relatedIdArray.get(i)));
-                }
-                group.set(StagingConstant.MATCH_RELATED_IDS, idList);
-                String groupId = getValue(resultArray.get(0), StagingConstant.MATCH_GROUP_ID);
-                if (groupId != null && !groupId.isEmpty() && !groupId.equals("null")) { //$NON-NLS-1$
+                JSONValue relatedIdArrayValue = getJSONValue(resultArray, StagingConstant.MATCH_RELATED_IDS);
+                if (relatedIdArrayValue != null && relatedIdArrayValue.isArray() != null) {
+                    JSONArray relatedIdArray = relatedIdArrayValue.isArray();
+                    List<String> idList = new ArrayList<String>();
+                    for (int i = 0; i < relatedIdArray.size(); i++) {
+                        idList.add(getStringValue(relatedIdArray.get(i)));
+                    }
+                    group.set(StagingConstant.MATCH_RELATED_IDS, idList);
+                    String groupId = getStringValue(getJSONValue(resultArray, StagingConstant.MATCH_GROUP_ID));
                     group.set(StagingConstant.MATCH_GROUP_ID, groupId);
                     group.set(StagingConstant.MATCH_GROUP_CONFIDENCE,
-                            getValue(resultArray.get(1), StagingConstant.MATCH_GROUP_CONFIDENCE));
+                            getStringValue(getJSONValue(resultArray, StagingConstant.MATCH_GROUP_CONFIDENCE)));
                     group.set(StagingConstant.MATCH_GROUP_GID, groupId);
                     group.set(StagingConstant.MATCH_GROUP_SZIE, relatedIdArray.size());
-                } else {
-                    group.set(StagingConstant.MATCH_GROUP_ID, null);
-                }
-                JSONArray valueArray = getChildArrayByParent(resultArray.get(3), "values"); //$NON-NLS-1$
-                List<String> matchFieldList = parent.get(StagingConstant.MATCH_FIELD_LIST);
-                for (int i = 0; i < valueArray.size(); i++) {
-                    JSONArray childArray = getChildArrayByParent(valueArray.get(i), StagingConstant.MATCH_VALUE);
-                    if (childArray != null) {
-                        String fieldName = getValue(childArray.get(0), StagingConstant.MATCH_FIELD);
-                        if (!matchFieldList.contains(fieldName)) {
-                            matchFieldList.add(fieldName);
-                        }
-                        if (group.get(StagingConstant.MATCH_GROUP_ID) != null) {
-                            group.set(fieldName, getValue(childArray.get(1), StagingConstant.MATCH_VALUE));
+                    JSONValue valueArrayValue = getJSONValue(resultArray, "values"); //$NON-NLS-1$
+                    if (valueArrayValue != null && valueArrayValue.isArray() != null) {
+                        JSONArray valueArray = valueArrayValue.isArray();
+                        List<String> matchFieldList = parent.get(StagingConstant.MATCH_FIELD_LIST);
+                        for (int i = 0; i < valueArray.size(); i++) {
+                            JSONArray childArray = getJSONArray(valueArray.get(i), StagingConstant.MATCH_VALUE);
+                            if (childArray != null) {
+                                String fieldName = getStringValue(getJSONValue(childArray, StagingConstant.MATCH_FIELD));
+                                if (!matchFieldList.contains(fieldName)) {
+                                    matchFieldList.add(fieldName);
+                                }
+                                String fieldValue = getStringValue(getJSONValue(childArray, StagingConstant.MATCH_VALUE));
+                                group.set(fieldName, fieldValue);
+                            }
                         }
                     }
                 }
             }
-            JSONValue detailsValue = groupArray.get(1);
-            JSONArray detailsArray = getChildArrayByParent(detailsValue, StagingConstant.MATCH_DETAILS);
-            if (detailsArray != null) {
-                for (int i = 0; i < detailsArray.size(); i++) {
-                    JSONValue detailValue = detailsArray.get(i);
-                    buildDetailNode(detailValue, group);
+            JSONValue detailsValue = getJSONValue(groupArray, StagingConstant.MATCH_DETAILS);
+            if (detailsValue != null && detailsValue.isArray() != null) {
+                JSONArray detailsArray = detailsValue.isArray();
+                if (detailsArray != null) {
+                    for (int i = 0; i < detailsArray.size(); i++) {
+                        JSONValue detailValue = detailsArray.get(i);
+                        buildDetailNode(detailValue, group);
+                    }
                 }
             }
             parent.add(group);
@@ -231,61 +220,59 @@ public class ExplainRestServiceHandler {
     }
 
     private void buildDetailNode(JSONValue value, BaseTreeModel parent) {
-        final JSONArray detailArray = getChildArrayByParent(value, "detail"); //$NON-NLS-1$
+        final JSONArray detailArray = getJSONArray(value, "detail"); //$NON-NLS-1$
         if (detailArray != null) {
             List<String> relatedIdList = parent.get(StagingConstant.MATCH_RELATED_IDS);
-            String id = getValue(detailArray.get(0), StagingConstant.MATCH_GROUP_ID);
+            String id = getStringValue(getJSONValue(detailArray, StagingConstant.MATCH_GROUP_ID));
             if (relatedIdList.contains(id)) {
                 final BaseTreeModel detail = new BaseTreeModel();
                 detail.setParent(parent);
                 detail.set(StagingConstant.MATCH_IS_GROUP, false);
                 detail.set(StagingConstant.MATCH_GROUP_NAME, ""); //$NON-NLS-1$
                 detail.set(StagingConstant.MATCH_GROUP_ID, id);
-                JSONArray matchArray = getChildArrayByParent(detailArray.get(1), "match"); //$NON-NLS-1$
-                if (matchArray != null) {
-                    JSONArray scoresArray = getChildArrayByParent(matchArray.get(1), "scores"); //$NON-NLS-1$
-                    if (scoresArray != null) {
-                        StringBuilder attributebBuilder = new StringBuilder();
-                        for (int i = 0; i < scoresArray.size(); i++) {
-                            JSONArray scoreArray = getChildArrayByParent(scoresArray.get(i), StagingConstant.MATCH_SCORE);
-                            if (scoreArray != null) {
-                                String fieldName = getValue(scoreArray.get(1), StagingConstant.MATCH_FIELD);
-                                String fieldValue = getValue(scoreArray.get(2), "fieldValue"); //$NON-NLS-1$
-                                detail.set(fieldName, fieldValue);
-                                attributebBuilder.append(fieldName);
-                                attributebBuilder.append(StagingConstant.VALUE_SEPARATOR);
-                                attributebBuilder.append(getValue(scoreArray.get(3), StagingConstant.MATCH_VALUE));
-                                attributebBuilder.append(","); //$NON-NLS-1$
+                JSONValue valuesValue = getJSONValue(detailArray, "values"); //$NON-NLS-1$
+                if (valuesValue != null && valuesValue.isArray() != null) {
+                    JSONArray valuesArray = valuesValue.isArray();
+                    for (int i = 0; i < valuesArray.size(); i++) {
+                        JSONArray valueArray = getJSONArray(valuesArray.get(i), "value"); //$NON-NLS-1$
+                        if (valueArray != null) {
+                            String fieldName = getStringValue(getJSONValue(valueArray, StagingConstant.MATCH_FIELD));
+                            String fieldValue = getStringValue(getJSONValue(valueArray, "value")); //$NON-NLS-1$
+                            detail.set(fieldName, fieldValue);
+                        }
+                    }
+                }
+
+                for (int i = 0; i < detailArray.size(); i++) {
+                    JSONValue detailValue = detailArray.get(i);
+                    JSONArray matchArray = getJSONArray(detailValue, "match"); //$NON-NLS-1$
+                    if (matchArray != null) {
+                        if ("true".equals(getStringValue(getJSONValue(matchArray, "is_match")))) { //$NON-NLS-1$ //$NON-NLS-2$
+                            JSONValue scoresValue = getJSONValue(matchArray, "scores"); //$NON-NLS-1$
+                            if (scoresValue != null && scoresValue.isArray() != null) {
+                                JSONArray scoresArray = scoresValue.isArray();
+                                StringBuilder attributebBuilder = new StringBuilder();
+                                for (int j = 0; j < scoresArray.size(); j++) {
+                                    JSONArray scoreArray = getJSONArray(scoresArray.get(j), StagingConstant.MATCH_SCORE);
+                                    if (scoreArray != null) {
+                                        attributebBuilder.append(getStringValue(getJSONValue(scoreArray,
+                                                StagingConstant.MATCH_FIELD)));
+                                        attributebBuilder.append(StagingConstant.VALUE_SEPARATOR);
+                                        attributebBuilder.append(getStringValue(getJSONValue(scoreArray,
+                                                StagingConstant.MATCH_VALUE)));
+                                        attributebBuilder.append(","); //$NON-NLS-1$
+                                    }
+                                }
+                                String scoreValue = attributebBuilder.length() > 0 ? attributebBuilder.toString().substring(0,
+                                        attributebBuilder.toString().length() - 1) : ""; //$NON-NLS-1$
+                                detail.set(StagingConstant.MATCH_SCORE, scoreValue);
                             }
                         }
-                        String scoreValue = attributebBuilder.length() > 0 ? attributebBuilder.toString().substring(0,
-                                attributebBuilder.toString().length() - 1) : ""; //$NON-NLS-1$
-                        detail.set(StagingConstant.MATCH_SCORE, scoreValue);
                     }
                 }
                 parent.add(detail);
             }
         }
-    }
-
-    public JSONArray getChildArrayByParent(JSONValue parent, String key) {
-        JSONArray childArray = null;
-        if (parent != null && parent.isObject() != null) {
-            JSONObject object = parent.isObject();
-            JSONValue childValue = object.get(key);
-            if (childValue != null && childValue.isArray() != null) {
-                childArray = childValue.isArray();
-            }
-        }
-        return childArray;
-    }
-
-    public String getValue(JSONValue value, String key) {
-        String valueString = null;
-        if (value != null && value.isObject() != null) {
-            valueString = getStringValue(value.isObject().get(key));
-        }
-        return valueString;
     }
 
     private BaseTreeModel buildTreeModelFromJsonRepresentation(JSONValue value) {
@@ -329,14 +316,43 @@ public class ExplainRestServiceHandler {
         return treeModel;
     }
 
+    public JSONArray getJSONArray(JSONValue value, String key) {
+        JSONArray childArray = null;
+        if (value != null && value.isObject() != null) {
+            JSONObject object = value.isObject();
+            JSONValue childValue = object.get(key);
+            if (childValue != null && childValue.isArray() != null) {
+                childArray = childValue.isArray();
+            }
+        }
+        return childArray;
+    }
+
+    private JSONValue getJSONValue(JSONArray array, String key) {
+        JSONValue value = null;
+        for (int i = 0; i < array.size(); i++) {
+            JSONValue jsonValue = array.get(i);
+            if (jsonValue.isObject() != null) {
+                JSONObject object = jsonValue.isObject();
+                if (object.get(key) != null) {
+                    value = object.get(key);
+                    break;
+                }
+            }
+        }
+        return value;
+    }
+
     private String getStringValue(JSONValue jsonValue) {
         String value = null;
-        if (jsonValue.isString() != null) {
-            value = jsonValue.isString().toString().replaceAll("\"", ""); //$NON-NLS-1$ //$NON-NLS-2$
-        } else if (jsonValue.isBoolean() != null) {
-            value = jsonValue.isBoolean().toString();
-        } else if (jsonValue.isNumber() != null) {
-            value = jsonValue.isNumber().toString();
+        if (jsonValue != null) {
+            if (jsonValue.isString() != null) {
+                value = jsonValue.isString().toString().replaceAll("\"", ""); //$NON-NLS-1$ //$NON-NLS-2$
+            } else if (jsonValue.isBoolean() != null) {
+                value = jsonValue.isBoolean().toString();
+            } else if (jsonValue.isNumber() != null) {
+                value = jsonValue.isNumber().toString();
+            }
         }
         return value;
     }

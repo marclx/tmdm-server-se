@@ -43,6 +43,8 @@ import com.extjs.gxt.ui.client.event.ContainerEvent;
 import com.extjs.gxt.ui.client.event.Events;
 import com.extjs.gxt.ui.client.event.Listener;
 import com.extjs.gxt.ui.client.event.PortalEvent;
+import com.extjs.gxt.ui.client.mvc.AppEvent;
+import com.extjs.gxt.ui.client.mvc.Dispatcher;
 import com.extjs.gxt.ui.client.widget.custom.Portal;
 import com.extjs.gxt.ui.client.widget.custom.Portlet;
 
@@ -55,16 +57,9 @@ public class MainFramePanel extends Portal {
 
     private static final boolean DEFAULT_REFRESH_STARTASON = false;
 
-    private static final List<String> DEFAULT_ORDERING_INDEX = Arrays.asList(WelcomePortal.START, WelcomePortal.PROCESS,
-            WelcomePortal.ALERT, WelcomePortal.SEARCH, WelcomePortal.TASKS, WelcomePortal.CHART_DATA,
-            WelcomePortal.CHART_ROUTING_EVENT, WelcomePortal.CHART_JOURNAL, WelcomePortal.CHART_MATCHING);
-
     private static final String NAME_START = "start", NAME_PROCESS = "process", NAME_ALERT = "alert", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             NAME_SEARCH = "search", NAME_TASKS = "tasks", NAME_CHART_DATA = "chart_data", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             NAME_CHART_ROUTING_EVENT = "chart_routing_event", NAME_CHART_JOURNAL = "chart_journal", NAME_CHART_MATCHING = "chart_matching"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-
-    private static final Set<String> DEFAULT_CHART_NAMES = new HashSet<String>(Arrays.asList(NAME_CHART_DATA,
-            NAME_CHART_ROUTING_EVENT, NAME_CHART_JOURNAL, NAME_CHART_MATCHING));
 
     private static final String USING_DEFAULT_COLUMN_NUM = "defaultColNum"; //$NON-NLS-1$
 
@@ -74,11 +69,16 @@ public class MainFramePanel extends Portal {
 
     private static final String CHARTS_ENABLED = "chartsOn"; //$NON-NLS-1$
 
+    private static final Set<String> nonAutoedPortlets = new HashSet<String>(Arrays.asList(WelcomePortal.START,
+            WelcomePortal.SEARCH));
+
     private Set<String> allCharts;
 
     private boolean chartsOn;
 
     private boolean startedAsOn;
+
+    private boolean isEnterprise;
 
     private int interval;
 
@@ -96,31 +96,26 @@ public class MainFramePanel extends Portal {
 
     private Map<String, Boolean> portletToVisibilities;
 
+    private Map<String, Boolean> portletToAutoOnOffs;
+
     private Map<String, Boolean> configFromActionsPanel;
 
     private PortalProperties props;
 
+    private List<String> default_index_ordering;
+
     private WelcomePortalServiceAsync service = (WelcomePortalServiceAsync) Registry.get(WelcomePortal.WELCOMEPORTAL_SERVICE);
 
-    public MainFramePanel(int numColumns, PortalProperties portalConfig) {
-        this(numColumns, portalConfig, null);
+    public MainFramePanel(int numColumns, PortalProperties portalConfig, boolean isEnterpriseVersion) {
+        this(numColumns, portalConfig, null, isEnterpriseVersion);
     }
 
-    public MainFramePanel(int numColumns, PortalProperties portalConfig, Map<String, Boolean> config) {
+    public MainFramePanel(int numColumns, PortalProperties portalConfig, Map<String, Boolean> userConfig,
+            boolean isEnterpriseVersion) {
         super(numColumns);
 
         this.numColumns = numColumns;
 
-        props = portalConfig;
-
-        if (config != null) {
-            portletToVisibilities = null;
-            configFromActionsPanel = config;
-            chartsOn = config.get(CHARTS_ENABLED);
-        } else {
-            Boolean chartsOnObj = portalConfig.getChartsOn();
-            chartsOn = (chartsOnObj == null) ? true : chartsOnObj;
-        }
         setBorders(true);
         setStyleAttribute("backgroundColor", "white"); //$NON-NLS-1$ //$NON-NLS-2$
         if (numColumns == DEFAULT_COLUMN_NUM) {
@@ -143,47 +138,11 @@ public class MainFramePanel extends Portal {
                 int row = MainFramePanel.this.getPortletIndex(portlet);
 
                 portletToLocations.put(portletName, Arrays.asList(column, row));
-                int index = DEFAULT_ORDERING_INDEX.indexOf(portletName);
-                if (index < DEFAULT_ORDERING_INDEX.size() - 1) {
-                    initializePortlet(DEFAULT_ORDERING_INDEX.get(index + 1));
+                int index = default_index_ordering.indexOf(portletName);
+                if (index < default_index_ordering.size() - 1) {
+                    initializePortlet(default_index_ordering.get(index + 1));
                 } else {
-                    // Store portal config values after all portlet initialized
-                    portletToVisibilities = new HashMap<String, Boolean>();
-                    for (String name : portletToLocations.keySet()) {
-                        portletToVisibilities.put(name, true);
-                    }
-                    // now we have all available portlets, need to record them in Actions panel in General project
-                    Map<String, Boolean> portletConfigs = new HashMap<String, Boolean>(portletToLocations.size());
-                    for (String name : portletToLocations.keySet()) {
-                        portletConfigs.put(name, portletToVisibilities.get(name));
-                    }
-
-                    allCharts = new HashSet<String>(portletToLocations.keySet());
-                    allCharts.retainAll(DEFAULT_CHART_NAMES);
-
-                    props.add(PortalProperties.KEY_PORTLET_LOCATIONS, portletToLocations.toString());
-                    props.add(PortalProperties.KEY_PORTLET_VISIBILITIES, portletToVisibilities.toString());
-                    props.add(PortalProperties.KEY_COLUMN_NUM, ((Integer) MainFramePanel.this.numColumns).toString());
-                    props.add(PortalProperties.KEY_ALL_CHARTS, allCharts.toString());
-                    props.add(PortalProperties.KEY_CHARTS_ON, ((Boolean) chartsOn).toString());
-
-                    service.savePortalConfig(props, new SessionAwareAsyncCallback<Void>() {
-
-                        @Override
-                        public void onSuccess(Void result) {
-                            return;
-                        }
-
-                        @Override
-                        protected void doOnFailure(Throwable caught) {
-                            super.doOnFailure(caught);
-                            return;
-                        }
-                    });
-
-                    portletConfigs.put(USING_DEFAULT_COLUMN_NUM, MainFramePanel.this.numColumns == DEFAULT_COLUMN_NUM);
-                    portletConfigs.put(CHARTS_ENABLED, chartsOn);
-                    recordPortlets(portletConfigs, allCharts);
+                    initDatabaseWithPortalSettings();
                 }
             }
         });
@@ -192,48 +151,80 @@ public class MainFramePanel extends Portal {
 
             @Override
             public void handleEvent(PortalEvent pe) {
+
                 updateLocations();
-                props.add(PortalProperties.KEY_PORTLET_LOCATIONS, portletToLocations.toString());
-                service.savePortalConfig(props, new SessionAwareAsyncCallback<Void>() {
+                service.savePortalConfig(PortalProperties.KEY_PORTLET_LOCATIONS, portletToLocations.toString(),
+                        new SessionAwareAsyncCallback<Void>() {
 
-                    @Override
-                    public void onSuccess(Void result) {
-                        return;
-                    }
+                            @Override
+                            public void onSuccess(Void result) {
+                                props.add(PortalProperties.KEY_PORTLET_LOCATIONS, portletToLocations.toString());
+                                return;
+                            }
 
-                    @Override
-                    protected void doOnFailure(Throwable caught) {
-                        super.doOnFailure(caught);
-                    }
-                });
+                            @Override
+                            protected void doOnFailure(Throwable caught) {
+                                super.doOnFailure(caught);
+                                portletToLocations = props.getPortletToLocations();
+                                revertPortletsToLocations(portletToLocations);
+                            }
+                        });
             }
         });
 
-        service.getWelcomePortletConfig(new SessionAwareAsyncCallback<Map<Boolean, Integer>>() {
+        isEnterprise = isEnterpriseVersion;
+        props = portalConfig;
+        configFromActionsPanel = userConfig;
 
-            @Override
-            public void onSuccess(Map<Boolean, Integer> config) {
-                if (!config.containsKey(startedAsOn)) {
-                    startedAsOn = !startedAsOn;
+        if (portalConfig.getPortletToLocations() == null) { // no portal configs in db yet, get autrefresh config
+                                                            // settings
+            service.getWelcomePortletConfig(new SessionAwareAsyncCallback<Map<Boolean, Integer>>() {
+
+                @Override
+                public void onSuccess(Map<Boolean, Integer> config) {
+                    if (!config.containsKey(startedAsOn)) {
+                        startedAsOn = !startedAsOn;
+                    }
+
+                    interval = config.get(startedAsOn);
+                    default_index_ordering = getDefaultPortletOrdering(isEnterprise);
+                    if (isEnterprise) {
+                        chartsOn = true;
+                    }
+                    initializePortlets();
                 }
 
-                interval = config.get(startedAsOn);
-                initializePortlets();
-            }
+                @Override
+                public void doOnFailure(Throwable e) {
+                    startedAsOn = DEFAULT_REFRESH_STARTASON;
+                    interval = DEFAULT_REFRESH_INTERVAL;
+                    default_index_ordering = getDefaultPortletOrdering(isEnterprise);
+                    if (isEnterprise) {
+                        chartsOn = true;
+                    }
+                    initializePortlets();
+                }
 
-            @Override
-            public void doOnFailure(Throwable e) {
-                startedAsOn = DEFAULT_REFRESH_STARTASON;
-                interval = DEFAULT_REFRESH_INTERVAL;
-                initializePortlets();
-            }
-        });
+            });
+        } else {
+            initializePortlets();
+        }
+    }
 
+    private List<String> getDefaultPortletOrdering(boolean isEE) {
+        if (isEE) {
+            return Arrays.asList(WelcomePortal.START, WelcomePortal.PROCESS, WelcomePortal.ALERT, WelcomePortal.SEARCH,
+                    WelcomePortal.TASKS, WelcomePortal.CHART_DATA, WelcomePortal.CHART_ROUTING_EVENT,
+                    WelcomePortal.CHART_JOURNAL, WelcomePortal.CHART_MATCHING);
+        } else {
+            return Arrays.asList(WelcomePortal.START, WelcomePortal.PROCESS, WelcomePortal.ALERT, WelcomePortal.TASKS);
+        }
     }
 
     private void initializePortlets() {
         portlets = new ArrayList<BasePortlet>();
         Map<String, List<Integer>> locations = props.getPortletToLocations();
+
         if (locations == null) {// login: init from scratch - no data in db
             portletToLocations = new LinkedHashMap<String, List<Integer>>();
             BasePortlet portlet;
@@ -244,21 +235,18 @@ public class MainFramePanel extends Portal {
         } else if (configFromActionsPanel == null) {// login: init with configs in db
             portletToLocations = props.getPortletToLocations();
             portletToVisibilities = props.getPortletToVisibilities();
-            allCharts = props.getAllCharts();
-            chartsOn = props.getChartsOn();
 
-            initializePortlets(portletToLocations, portletToVisibilities);
-            Map<String, Boolean> portletConfigs = new HashMap<String, Boolean>(portletToLocations.size());
-            for (String name : portletToLocations.keySet()) {
-                portletConfigs.put(name, portletToVisibilities.get(name));
+            if (isEnterprise) {
+                allCharts = props.getAllCharts();
+                chartsOn = props.getChartsOn();
             }
 
-            portletConfigs.put(USING_DEFAULT_COLUMN_NUM, numColumns == DEFAULT_COLUMN_NUM);
-            portletConfigs.put(CHARTS_ENABLED, chartsOn);
-            recordPortlets(portletConfigs, allCharts);
+            initializePortlets(portletToLocations, portletToVisibilities);
+            recordPortalSettings();
         } else {
             // switch column config/chartsSwitcher status updated, get current ordering from database, other configs
             // from Actions Panel
+            final PortalProperties portalPropertiesCp = new PortalProperties(props);
             portletToLocations = props.getPortletToLocations();
             SortedMap<List<Integer>, String> locationToPortlets = new TreeMap<List<Integer>, String>(getLocationComparator());
             for (String portletName : portletToLocations.keySet()) {
@@ -268,13 +256,17 @@ public class MainFramePanel extends Portal {
             List<String> orderedPortletNames = new ArrayList<String>(portletToLocations.size());
             orderedPortletNames.addAll(locationToPortlets.values());
 
-            allCharts = props.getAllCharts();
-            if (chartsOn) {
-                if (!orderedPortletNames.containsAll(allCharts)) {
-                    orderedPortletNames.addAll(allCharts);
+            if (isEnterprise) {
+                allCharts = props.getAllCharts();
+                chartsOn = configFromActionsPanel.get(CHARTS_ENABLED);
+                if (chartsOn) {
+                    if (!orderedPortletNames.containsAll(allCharts)) {
+                        orderedPortletNames.addAll(allCharts);
+                    }
+                } else {
+                    orderedPortletNames.removeAll(allCharts);
+                    props.disableAutoRefresh(allCharts);
                 }
-            } else {
-                orderedPortletNames.removeAll(allCharts);
             }
 
             List<List<Integer>> defaultLocations = getDefaultLocations(numColumns);
@@ -285,6 +277,9 @@ public class MainFramePanel extends Portal {
             for (String name : orderedPortletNames) {
                 loc = defaultLocations.get(index);
                 visible = configFromActionsPanel.get(name);
+                if (!visible) {
+                    props.add(PortalProperties.KEY_AUTO_ONOFFS, name, ((Boolean) false).toString());
+                }
                 initializePortlet(name, loc, visible);
                 portletToVisibilities.put(name, visible);
                 index++;
@@ -292,33 +287,53 @@ public class MainFramePanel extends Portal {
 
             updateLocations();
 
-            // Store updated config values due to actions: switching column num or charts status
             props.add(PortalProperties.KEY_PORTLET_LOCATIONS, portletToLocations.toString());
             props.add(PortalProperties.KEY_PORTLET_VISIBILITIES, portletToVisibilities.toString());
             props.add(PortalProperties.KEY_COLUMN_NUM, ((Integer) MainFramePanel.this.numColumns).toString());
-            props.add(PortalProperties.KEY_ALL_CHARTS, allCharts.toString());
-            props.add(PortalProperties.KEY_CHARTS_ON, ((Boolean) chartsOn).toString());
+
+            if (isEnterprise) {
+                props.add(PortalProperties.KEY_CHARTS_ON, ((Boolean) chartsOn).toString());
+            }
 
             service.savePortalConfig(props, new SessionAwareAsyncCallback<Void>() {
 
                 @Override
                 public void onSuccess(Void result) {
+                    recordPortalSettings();
                     return;
                 }
 
                 @Override
                 protected void doOnFailure(Throwable caught) {
                     super.doOnFailure(caught);
+                    AppEvent appEvent = new AppEvent(WelcomePortalEvents.RevertRefreshPortal, portalPropertiesCp);
+                    Dispatcher.forwardEvent(appEvent);
                 }
             });
-            Map<String, Boolean> portletConfigs = new HashMap<String, Boolean>(portletToLocations.size());
-            for (String name : portletToLocations.keySet()) {
-                portletConfigs.put(name, portletToVisibilities.get(name));
-            }
-            portletConfigs.put(USING_DEFAULT_COLUMN_NUM, numColumns == DEFAULT_COLUMN_NUM);
-            portletConfigs.put(CHARTS_ENABLED, chartsOn);
-            recordPortlets(portletConfigs, allCharts);
+
         }
+    }
+
+    private void recordPortalSettings() {
+        Map<String, Boolean> portletConfigs = new HashMap<String, Boolean>(portletToLocations.size());
+        for (String name : portletToLocations.keySet()) {
+            portletConfigs.put(name, portletToVisibilities.get(name));
+        }
+
+        portletConfigs.put(USING_DEFAULT_COLUMN_NUM, numColumns == getDefaultColumNum());
+
+        String portletConfigsStr;
+        if (isEnterprise) {
+            portletConfigs.put(CHARTS_ENABLED, chartsOn);
+            portletConfigsStr = portletConfigs.toString() + allCharts.toString();
+        } else {
+            portletConfigsStr = portletConfigs.toString();
+        }
+        recordPortalConfigs(portletConfigsStr);
+    }
+
+    private Integer getDefaultColumNum() {
+        return isEnterprise ? DEFAULT_COLUMN_NUM : ALTERNATIVE_COLUMN_NUM;
     }
 
     private Comparator<List<Integer>> getLocationComparator() {
@@ -393,7 +408,7 @@ public class MainFramePanel extends Portal {
         } else if (WelcomePortal.ALERT.equals(portletName)) {
             initAlertPortlet();
         } else if (WelcomePortal.SEARCH.equals(portletName)) {
-            initSearchPortlet();
+            portlet = new SearchPortlet(MainFramePanel.this);
         } else if (WelcomePortal.TASKS.equals(portletName)) {
             initTaskPortlet();
         } else if (WelcomePortal.CHART_DATA.equals(portletName)) {
@@ -403,7 +418,7 @@ public class MainFramePanel extends Portal {
         } else if (WelcomePortal.CHART_JOURNAL.equals(portletName)) {
             portlet = new JournalChart(this);
         } else if (WelcomePortal.CHART_MATCHING.equals(portletName)) {
-            initMatchingChart();
+            portlet = new MatchingChart(MainFramePanel.this);
         }
 
         if (portlet != null) {
@@ -445,6 +460,36 @@ public class MainFramePanel extends Portal {
         }
     }
 
+    // called when db saving fails for 'Drop' event
+    private void revertPortletsToLocations(Map<String, List<Integer>> locs) {
+
+        SortedMap<List<Integer>, String> locationToPortlets = new TreeMap<List<Integer>, String>(getLocationComparator());
+        for (String portletName : locs.keySet()) {
+            locationToPortlets.put(locs.get(portletName), portletName);
+        }
+
+        for (BasePortlet portlet : portlets) {
+            this.remove(portlet);
+
+        }
+
+        for (List<Integer> loc : locationToPortlets.keySet()) {
+            Portlet portlet = getPortlet(locationToPortlets.get(loc));
+            assert (portlet != null);
+            this.add(portlet, loc);
+        }
+    }
+
+    private Portlet getPortlet(String name) {
+        Portlet result = null;
+        for (BasePortlet portlet : portlets) {
+            if (name.equals(portlet.getPortletName())) {
+                result = portlet;
+            }
+        }
+        return result;
+    }
+
     private void add(Portlet portlet) {
         this.add(portlet, pos % numColumns);
         pos++;
@@ -473,9 +518,11 @@ public class MainFramePanel extends Portal {
             portletToLocations.put(portlet.getPortletName(), Arrays.asList(column, row));
         }
 
-        if ((!chartsOn) && (portlets.size() < portletToLocations.size())) {
-            for (String name : allCharts) {
-                portletToLocations.remove(name);
+        if (isEnterprise) {
+            if ((!chartsOn) && (portlets.size() < portletToLocations.size())) {
+                for (String name : allCharts) {
+                    portletToLocations.remove(name);
+                }
             }
         }
     }
@@ -492,29 +539,77 @@ public class MainFramePanel extends Portal {
         }
     }
 
-    public void stopChartsAutoRefresh() {
+    public void stopAutoRefresh() {
         for (BasePortlet portlet : portlets) {
-            if (allCharts.contains(portlet.getPortletName())) {
-                portlet.autoRefresh(false);
+            if (!nonAutoedPortlets.contains(portlet.getPortletName()) && portlet.isAutoOn()) {
+                portlet.resetAutofresh(false);
             }
         }
     }
 
-    public void refresh(Map<String, Boolean> config) {
-        chartsOn = config.get(CHARTS_ENABLED);
+    public Set<String> getAllPortletNames() {
+        return portletToLocations.keySet();
+    }
 
+    public void removeAllPortlets() {
+        this.removeAll();
+    }
+
+    // called for basic config change (portlets visibilities changes, except 'charts'/column number updates) triggered
+    // from Action Panel
+    public void refresh(Map<String, Boolean> config) {
+        final Map<String, Boolean> portletToAutoOnOffsCp = props.getAutoRefreshStatus();
+        final Map<String, Boolean> portletToVisibilitiesCp = props.getPortletToVisibilities();
         for (BasePortlet portlet : portlets) {
 
             if (config.get(portlet.getPortletName())) {
                 portlet.show();
             } else {
                 portlet.hide();
+                portlet.resetAutofresh(false);
+                props.add(PortalProperties.KEY_AUTO_ONOFFS, portlet.getPortletName(), ((Boolean) false).toString());
             }
         }
-
-        this.layout(true);
         updateVisibilities();
-        props.add(PortalProperties.KEY_PORTLET_VISIBILITIES, portletToVisibilities.toString());
+
+        List<String> configUpdates = Arrays.asList(portletToVisibilities.toString(), props.getAutoRefreshStatus().toString());
+
+        service.savePortalConfig(configUpdates, new SessionAwareAsyncCallback<Void>() {
+
+            @Override
+            public void onSuccess(Void result) {
+                // props already synched for autoOnOffs in the above
+                props.add(PortalProperties.KEY_PORTLET_VISIBILITIES, portletToVisibilities.toString());
+                MainFramePanel.this.layout(true);
+                return;
+            }
+
+            @Override
+            protected void doOnFailure(Throwable caught) {
+                // revert to previous auto state on portlets and visible marks on Action Panel
+                super.doOnFailure(caught);
+                portletToVisibilities = portletToVisibilitiesCp;
+                portletToAutoOnOffs = portletToAutoOnOffsCp;
+                props.add(PortalProperties.KEY_PORTLET_VISIBILITIES, portletToVisibilitiesCp.toString());
+                props.add(PortalProperties.KEY_AUTO_ONOFFS, portletToAutoOnOffsCp.toString());
+                String portletName;
+
+                for (BasePortlet portlet : portlets) {
+                    portletName = portlet.getPortletName();
+                    if (portletToVisibilities.get(portletName)) {
+                        portlet.show();
+                        if (!nonAutoedPortlets.contains(portletName) && portletToAutoOnOffs.get(portletName)) {
+                            portlet.resetAutofresh(true);
+                        }
+                    } else {
+                        portlet.hide();
+                    }
+                }
+
+                MainFramePanel.this.layout(true);
+                recordPortalSettings();
+            }
+        });
     }
 
     public PortalProperties getProps() {
@@ -568,30 +663,11 @@ public class MainFramePanel extends Portal {
                     portlets.add(portlet);
                     MainFramePanel.this.add(portlet);
                 } else {
-                    int index = DEFAULT_ORDERING_INDEX.indexOf(WelcomePortal.ALERT);
-                    initializePortlet(DEFAULT_ORDERING_INDEX.get(index + 1));
+                    int index = default_index_ordering.indexOf(WelcomePortal.ALERT);
+                    initializePortlet(default_index_ordering.get(index + 1));
                 }
             }
 
-        });
-
-    }
-
-    private void initSearchPortlet() {
-
-        service.isEnterpriseVersion(new SessionAwareAsyncCallback<Boolean>() {
-
-            @Override
-            public void onSuccess(Boolean isEnterprise) {
-                if (isEnterprise) {
-                    BasePortlet portlet = new SearchPortlet(MainFramePanel.this);
-                    portlets.add(portlet);
-                    MainFramePanel.this.add(portlet);
-                } else {
-                    int index = DEFAULT_ORDERING_INDEX.indexOf(WelcomePortal.SEARCH);
-                    initializePortlet(DEFAULT_ORDERING_INDEX.get(index + 1));
-                }
-            }
         });
 
     }
@@ -615,8 +691,12 @@ public class MainFramePanel extends Portal {
                             portlets.add(portlet);
                             MainFramePanel.this.add(portlet);
                         } else {
-                            int index = DEFAULT_ORDERING_INDEX.indexOf(WelcomePortal.TASKS);
-                            initializePortlet(DEFAULT_ORDERING_INDEX.get(index + 1));
+                            if (isEnterprise) {
+                                int index = default_index_ordering.indexOf(WelcomePortal.TASKS);
+                                initializePortlet(default_index_ordering.get(index + 1));
+                            } else {
+                                initDatabaseWithPortalSettings();
+                            }
                         }
 
                     }
@@ -626,20 +706,61 @@ public class MainFramePanel extends Portal {
 
     }
 
-    private void initMatchingChart() {
+    // Store portal config values after all portlet initialized
+    private void initDatabaseWithPortalSettings() {
+        portletToVisibilities = new HashMap<String, Boolean>();
+        portletToAutoOnOffs = new HashMap<String, Boolean>();
+        for (String name : portletToLocations.keySet()) {
+            portletToVisibilities.put(name, true);
+            if (!name.equals(WelcomePortal.START) && !name.equals(WelcomePortal.SEARCH)) {
+                portletToAutoOnOffs.put(name, false);
+            }
+        }
+        // now we have all available portlets, need to record them in Actions panel in General project
+        Map<String, Boolean> portletConfigs = new HashMap<String, Boolean>(portletToLocations.size());
+        for (String name : portletToLocations.keySet()) {
+            portletConfigs.put(name, portletToVisibilities.get(name));
+        }
 
-        service.isEnterpriseVersion(new SessionAwareAsyncCallback<Boolean>() {
+        props.add(PortalProperties.KEY_PORTLET_LOCATIONS, portletToLocations.toString());
+        props.add(PortalProperties.KEY_PORTLET_VISIBILITIES, portletToVisibilities.toString());
+        props.add(PortalProperties.KEY_COLUMN_NUM, ((Integer) MainFramePanel.this.numColumns).toString());
+        if (isEnterprise) {
+            allCharts = new HashSet<String>(portletToLocations.keySet());
+            allCharts.retainAll(getDefaultChartNames());
+            props.add(PortalProperties.KEY_ALL_CHARTS, allCharts.toString());
+            props.add(PortalProperties.KEY_CHARTS_ON, ((Boolean) chartsOn).toString());
+        }
+        props.add(PortalProperties.KEY_AUTO_ONOFFS, portletToAutoOnOffs.toString());
+
+        service.savePortalConfig(props, new SessionAwareAsyncCallback<Void>() {
 
             @Override
-            public void onSuccess(Boolean isEnterprise) {
-                if (isEnterprise) {
-                    BasePortlet portlet = new MatchingChart(MainFramePanel.this);
-                    portlets.add(portlet);
-                    MainFramePanel.this.add(portlet);
-                }
+            public void onSuccess(Void result) {
+                return;
+            }
+
+            @Override
+            protected void doOnFailure(Throwable caught) {
+                super.doOnFailure(caught);
+                return;
             }
         });
 
+        String portletConfigsStr;
+        portletConfigs.put(USING_DEFAULT_COLUMN_NUM, MainFramePanel.this.numColumns == getDefaultColumNum());
+        if (isEnterprise) {
+            portletConfigs.put(CHARTS_ENABLED, chartsOn);
+            portletConfigsStr = portletConfigs.toString() + allCharts.toString();
+        } else {
+            portletConfigsStr = portletConfigs.toString();
+        }
+        recordPortalConfigs(portletConfigsStr);
+    }
+
+    private Set<String> getDefaultChartNames() {
+        return new HashSet<String>(Arrays.asList(NAME_CHART_DATA, NAME_CHART_ROUTING_EVENT, NAME_CHART_JOURNAL,
+                NAME_CHART_MATCHING));
     }
 
     public native void openWindow(String url)/*-{
@@ -653,7 +774,7 @@ public class MainFramePanel extends Portal {
     }-*/;
 
     // record available portlets in Actions panel
-    private native void recordPortlets(Map<String, Boolean> configs, Set<String> charts)/*-{
-		$wnd.amalto.core.markPortlets(configs, charts);
+    private native void recordPortalConfigs(String configs)/*-{
+		$wnd.amalto.core.markPortlets(configs);
     }-*/;
 }

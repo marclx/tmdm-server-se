@@ -7,12 +7,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.talend.mdm.webapp.base.client.SessionAwareAsyncCallback;
 import org.talend.mdm.webapp.base.client.util.UserContextUtil;
+import org.talend.mdm.webapp.general.client.General;
+import org.talend.mdm.webapp.general.client.GeneralServiceAsync;
 import org.talend.mdm.webapp.general.client.i18n.MessageFactory;
 import org.talend.mdm.webapp.general.client.mvc.GeneralEvent;
 import org.talend.mdm.webapp.general.model.ActionBean;
 import org.talend.mdm.webapp.general.model.ComboBoxModel;
 
+import com.extjs.gxt.ui.client.Registry;
 import com.extjs.gxt.ui.client.Style.Orientation;
 import com.extjs.gxt.ui.client.Style.Scroll;
 import com.extjs.gxt.ui.client.event.ButtonEvent;
@@ -43,9 +47,6 @@ public class ActionsPanel extends FormPanel {
             NAME_SEARCH = "search", NAME_TASKS = "tasks", NAME_CHART_DATA = "chart_data", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             NAME_CHART_ROUTING_EVENT = "chart_routing_event", NAME_CHART_JOURNAL = "chart_journal", NAME_CHART_MATCHING = "chart_matching"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 
-    private static final List<String> DEFAULT_PORTLET_NAMES = Arrays.asList(NAME_START, NAME_PROCESS, NAME_ALERT, NAME_SEARCH,
-            NAME_TASKS, NAME_CHART_DATA, NAME_CHART_ROUTING_EVENT, NAME_CHART_JOURNAL, NAME_CHART_MATCHING);
-
     private static final List<String> DEFAULT_NONCHART_NAMES = Arrays.asList(NAME_START, NAME_PROCESS, NAME_ALERT, NAME_SEARCH,
             NAME_TASKS);
 
@@ -59,6 +60,8 @@ public class ActionsPanel extends FormPanel {
     private static final String CHARTS_MESSAGE_ADD = "Enable charts"; //$NON-NLS-1$
 
     private static final String CHARTS_MESSAGE_REMOVE = "Disable charts"; //$NON-NLS-1$
+
+    private GeneralServiceAsync service = (GeneralServiceAsync) Registry.get(General.OVERALL_SERVICE);
 
     private Set<String> allCharts;
 
@@ -84,13 +87,19 @@ public class ActionsPanel extends FormPanel {
 
     private Button saveConfigBtn = new Button(MessageFactory.getMessages().save());
 
-    private boolean chartsOn = true;
+    private boolean chartsOn;
 
     private ComboBoxModel emptyModelValue = new ComboBoxModel();
 
     private static Boolean modelSelectFlag = true;
 
     private static Boolean containerSelectFlag = true;
+
+    private static String WELCOMEPORTAL_CONTEXT = "welcomeportal"; //$NON-NLS-1$
+
+    private boolean isEnterprise;
+
+    private static String WELCOMEPORTAL_APP = "WelcomePortal"; //$NON-NLS-1$
 
     private ActionsPanel() {
         super();
@@ -135,12 +144,12 @@ public class ActionsPanel extends FormPanel {
 
     private void addDefaultPortletConfig() {
         portletCKBoxes = new HashMap<String, CheckBox>(9);
-        FieldSet portalConfig = new FieldSet();
+        final FieldSet portalConfig = new FieldSet();
         FormLayout formLayout = new FormLayout();
         formLayout.setLabelAlign(LabelAlign.TOP);
         portalConfig.setLayout(formLayout);
         portalConfig.setHeading(MessageFactory.getMessages().portal_configuration());
-        CheckBoxGroup checkGroup = new CheckBoxGroup();
+        final CheckBoxGroup checkGroup = new CheckBoxGroup();
         checkGroup.setName("portlets"); //$NON-NLS-1$
         checkGroup.setFieldLabel(MessageFactory.getMessages().portal_portlets());
         checkGroup.setOrientation(Orientation.VERTICAL);
@@ -156,65 +165,92 @@ public class ActionsPanel extends FormPanel {
             portletCKBoxes.put(portletName, check);
         }
 
-        chartsCheck = new CheckBox() {
+        service.isEnterpriseVersion(new SessionAwareAsyncCallback<Boolean>() {
 
             @Override
-            protected void onClick(ComponentEvent be) {
-                if (!this.getValue()) {
-                    chartsOn = false;
+            public void onSuccess(Boolean isEE) {
+                isEnterprise = isEE;
+                if (isEnterprise) {
+                    chartsCheck = new CheckBox() {
+
+                        @Override
+                        protected void onClick(ComponentEvent be) {
+                            if (!this.getValue()) {
+                                chartsOn = false;
+                            } else {
+                                chartsOn = true;
+                            }
+                            updateChartsConfig(chartsOn);
+                        }
+                    };
+                    chartsCheck.setName("charts"); //$NON-NLS-1$
+                    chartsCheck.setBoxLabel(MessageFactory.getMessages().portal_chart_portlets());
+                    chartsCheck.setValue(true);
+                    chartsCheck.setVisible(true);
+                    checkGroup.add(chartsCheck);
+
+                    CheckBoxGroup chartsGroup = new CheckBoxGroup();
+                    chartsGroup.setHideLabel(true);
+                    chartsGroup.setOrientation(Orientation.VERTICAL);
+
+                    CheckBox checkChart;
+                    for (String portletName : DEFAULT_CHART_NAMES) {
+                        checkChart = new CheckBox() {
+
+                            @Override
+                            protected void onClick(ComponentEvent be) {
+                                if (this.getValue()) {
+                                    chartsCheck.setValue(true);
+                                    chartsOn = true;
+                                }
+                            }
+                        };
+                        checkChart.setName(portletName);
+                        checkChart.setBoxLabel(getPortletLabel(portletName));
+                        checkChart.setValue(false);
+                        checkChart.setVisible(false);
+                        chartsGroup.add(checkChart);
+                        portletCKBoxes.put(portletName, checkChart);
+                    }
+
+                    formData = new FormData();
+                    formData.setMargins(new Margins(2, -20, 2, 20));
+                    portalConfig.add(checkGroup, formData);
+
+                    FormData formDataCharts = new FormData();
+                    formDataCharts.setMargins(new Margins(-2, -40, 2, 40));
+                    portalConfig.add(chartsGroup, formDataCharts);
                 } else {
-                    chartsOn = true;
+                    formData = new FormData();
+                    formData.setMargins(new Margins(2, -20, 2, 20));
+                    portalConfig.add(checkGroup, formData);
                 }
-                updateChartsConfig(chartsOn);
+
+                RadioGroup colRadioGroup = new RadioGroup();
+                colRadioGroup.setFieldLabel(MessageFactory.getMessages().portal_columns());
+                colRadioGroup.setOrientation(Orientation.VERTICAL);
+
+                col2Radio = new Radio();
+                col2Radio.setBoxLabel(MessageFactory.getMessages().portal_columns_two());
+
+                col3Radio = new Radio();
+                col3Radio.setBoxLabel(MessageFactory.getMessages().portal_columns_three());
+
+                colRadioGroup.add(col2Radio);
+                colRadioGroup.add(col3Radio);
+
+                formData = new FormData();
+                formData.setMargins(new Margins(2, -20, 2, 20));
+                portalConfig.add(colRadioGroup, formData);
+
+                formData = new FormData();
+                formData.setMargins(new Margins(2, 0, 2, 0));
+                portalConfig.add(saveConfigBtn, formData);
+                saveConfigBtn.disable();
+                ActionsPanel.this.add(portalConfig);
+                ActionsPanel.this.layout(true);
             }
-        };
-        chartsCheck.setName("charts"); //$NON-NLS-1$
-        chartsCheck.setBoxLabel(MessageFactory.getMessages().portal_chart_portlets());
-        chartsCheck.setValue(true);
-        chartsCheck.setVisible(true);
-        checkGroup.add(chartsCheck);
-
-        CheckBoxGroup chartsGroup = new CheckBoxGroup();
-        chartsGroup.setHideLabel(true);
-        chartsGroup.setOrientation(Orientation.VERTICAL);
-
-        for (String portletName : DEFAULT_CHART_NAMES) {
-            check = new CheckBox();
-            check.setName(portletName);
-            check.setBoxLabel(getPortletLabel(portletName));
-            check.setValue(false);
-            check.setVisible(false);
-            chartsGroup.add(check);
-            portletCKBoxes.put(portletName, check);
-        }
-
-        formData = new FormData();
-        formData.setMargins(new Margins(2, -20, 2, 20));
-        portalConfig.add(checkGroup, formData);
-        FormData formDataCharts = new FormData();
-        formDataCharts.setMargins(new Margins(-2, -40, 2, 40));
-        portalConfig.add(chartsGroup, formDataCharts);
-
-        RadioGroup colRadioGroup = new RadioGroup();
-        colRadioGroup.setFieldLabel(MessageFactory.getMessages().portal_columns());
-        colRadioGroup.setOrientation(Orientation.VERTICAL);
-
-        col2Radio = new Radio();
-        col2Radio.setBoxLabel(MessageFactory.getMessages().portal_columns_two());
-
-        col3Radio = new Radio();
-        col3Radio.setBoxLabel(MessageFactory.getMessages().portal_columns_three());
-
-        colRadioGroup.add(col2Radio);
-        colRadioGroup.add(col3Radio);
-
-        portalConfig.add(colRadioGroup, formData);
-
-        formData = new FormData();
-        formData.setMargins(new Margins(2, 0, 2, 0));
-        portalConfig.add(saveConfigBtn, formData);
-        saveConfigBtn.disable();
-        this.add(portalConfig);
+        });
     }
 
     public static ActionsPanel getInstance() {
@@ -264,7 +300,8 @@ public class ActionsPanel extends FormPanel {
             @Override
             public void componentSelected(ButtonEvent ce) {
                 Map<String, Boolean> configUpdates = getPortalConfigUpdate();
-                refreshPortal(configUpdates);
+                switchToWelcomeportal();
+                refreshPortal(configUpdates.toString());
 
             }
         });
@@ -336,6 +373,11 @@ public class ActionsPanel extends FormPanel {
         });
     }
 
+    protected void switchToWelcomeportal() {
+        display(WELCOMEPORTAL_CONTEXT, WELCOMEPORTAL_APP);
+        AccordionMenus.getInstance().selectedItem(AccordionMenus.getInstance().getWelcomeportalItem());
+    }
+
     public void loadAction(ActionBean action) {
         containerStore.removeAll();
         dataStore.removeAll();
@@ -364,35 +406,47 @@ public class ActionsPanel extends FormPanel {
         return dataModelBox.getValue().getValue();
     }
 
-    public void updatePortletConfig(Map<String, Boolean> boolenConfigs, Set<String> charts) {
-        Map<String, Boolean> parsedConfig = parseConfig(boolenConfigs.toString());
+    public void updatePortletConfig(String configs) {
+        Map<String, Boolean> booleanConfigs = new HashMap<String, Boolean>();
+        allCharts = new HashSet<String>();
+        populateConfigs(configs, booleanConfigs, allCharts);
         for (CheckBox check : portletCKBoxes.values()) {
             String name = check.getName();
-            if (parsedConfig.containsKey(name)) {
+            if (booleanConfigs.containsKey(name)) {
                 check.setVisible(true);
-                check.setValue(parsedConfig.get(name));
+                check.setValue(booleanConfigs.get(name));
             }
         }
 
-        boolean isChartsOn = parsedConfig.get(CHARTS_ENABLED);
+        if (isEnterprise) {
+            chartsOn = booleanConfigs.get(CHARTS_ENABLED);
 
-        allCharts = charts;
-        if (!isChartsOn) {
-            chartsCheck.setValue(false);
-            for (CheckBox check : portletCKBoxes.values()) {
-                String name = check.getName();
-                if (allCharts.contains(name)) {
-                    check.setValue(false);
+            if (!chartsOn) {
+                chartsCheck.setValue(false);
+                for (CheckBox check : portletCKBoxes.values()) {
+                    String name = check.getName();
+                    if (allCharts.contains(name)) {
+                        check.setVisible(true);
+                        check.setValue(false);
+                    }
                 }
+            } else {
+                chartsCheck.setValue(true);
             }
-        } else {
-            chartsCheck.setValue(true);
         }
 
-        if (parsedConfig.get(DEFAULT_COLUMN_NUM)) {
-            col3Radio.setValue(true);
+        if (booleanConfigs.get(DEFAULT_COLUMN_NUM)) {
+            if (isEnterprise) {
+                col3Radio.setValue(true);
+            } else {
+                col2Radio.setValue(true);
+            }
         } else {
-            col2Radio.setValue(true);
+            if (isEnterprise) {
+                col2Radio.setValue(true);
+            } else {
+                col3Radio.setValue(true);
+            }
         }
         if (saveBtn.isEnabled()) {
             saveConfigBtn.enable();
@@ -400,9 +454,8 @@ public class ActionsPanel extends FormPanel {
         this.layout(true);
     }
 
-    private Map<String, Boolean> parseConfig(String dataString) {
-        Map<String, Boolean> config = new HashMap<String, Boolean>();
-        String temp = dataString.substring(1, dataString.length() - 1);
+    private void populateConfigs(String dataString, Map<String, Boolean> booleanConfigs, Set<String> charts) {
+        String temp = dataString.substring(1, dataString.indexOf('}'));
         String[] nameValues = temp.split(","); //$NON-NLS-1$
         String name;
         Boolean visible;
@@ -411,9 +464,23 @@ public class ActionsPanel extends FormPanel {
             nameValuePair = nameValue.split("="); //$NON-NLS-1$
             name = nameValuePair[0].trim();
             visible = Boolean.parseBoolean(nameValuePair[1]);
-            config.put(name, visible);
+            booleanConfigs.put(name, visible);
         }
-        return config;
+
+        if (isEnterprise) {
+            temp = dataString.substring(dataString.indexOf('[') + 1, dataString.length() - 1);
+
+            String[] names = temp.split(", "); //$NON-NLS-1$
+            charts.addAll((Arrays.asList(names)));
+        }
+
+    }
+
+    private Set<String> parseSetString(String dataString) {
+        String temp = dataString.substring(1, dataString.length() - 1);
+        String[] names = temp.split(", "); //$NON-NLS-1$
+
+        return new HashSet<String>(Arrays.asList(names));
     }
 
     public void uncheckPortlet(String portletName) {
@@ -423,8 +490,7 @@ public class ActionsPanel extends FormPanel {
 
     private void updateChartsConfig(boolean isChartsOn) {
         for (CheckBox check : portletCKBoxes.values()) {
-            String name = check.getName();
-            if (allCharts.contains(name)) {
+            if (allCharts.contains(check.getName())) {
                 if (isChartsOn) {
                     check.setVisible(true);
                     check.setValue(true);
@@ -440,24 +506,52 @@ public class ActionsPanel extends FormPanel {
     private Map<String, Boolean> getPortalConfigUpdate() {
         Map<String, Boolean> updates = new HashMap<String, Boolean>();
         CheckBox check;
-        for (String name : DEFAULT_PORTLET_NAMES) {
+        for (String name : getDefaultPortletNames()) {
             check = portletCKBoxes.get(name);
             if (check.isVisible()) {
-                updates.put(name, check.getValue());
+                if (!isEnterprise) {
+                    updates.put(name, check.getValue());
+                } else {
+                    if (!allCharts.contains(name) || chartsOn) {
+                        updates.put(name, check.getValue());
+                    }
+                }
             }
         }
 
         boolean defaultColNum = true;
         if (!col3Radio.getValue()) {
-            defaultColNum = false;
+            defaultColNum = isEnterprise ? false : true;
+        } else {
+            defaultColNum = isEnterprise ? true : false;
         }
         updates.put(DEFAULT_COLUMN_NUM, defaultColNum);
-        updates.put(CHARTS_ENABLED, chartsOn);
+
+        if (isEnterprise) {
+            updates.put(CHARTS_ENABLED, chartsOn);
+        }
         return updates;
     }
 
+    private List<String> getDefaultPortletNames() {
+        if (isEnterprise) {
+            return Arrays.asList(NAME_START, NAME_PROCESS, NAME_ALERT, NAME_SEARCH, NAME_TASKS, NAME_CHART_DATA,
+                    NAME_CHART_ROUTING_EVENT, NAME_CHART_JOURNAL, NAME_CHART_MATCHING);
+        } else {
+            return Arrays.asList(NAME_START, NAME_PROCESS, NAME_ALERT, NAME_SEARCH, NAME_TASKS);
+        }
+    }
+
     // call refresh in WelcomePortal
-    private native void refreshPortal(Map<String, Boolean> portalConfig)/*-{
+    private native void refreshPortal(String portalConfig)/*-{
 		$wnd.amalto.core.refreshPortal(portalConfig);
+    }-*/;
+
+    private native void display(String context, String application)/*-{
+		if ($wnd.amalto[context]) {
+			if ($wnd.amalto[context][application]) {
+				$wnd.amalto[context][application].init();
+			}
+		}
     }-*/;
 }

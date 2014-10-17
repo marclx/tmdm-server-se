@@ -20,7 +20,7 @@ import com.amalto.core.query.user.UserQueryBuilder;
 import com.amalto.core.query.user.Visitor;
 import com.amalto.core.storage.record.DataRecord;
 
-public class Timestamp implements TypedExpression, MetadataField {
+public class Timestamp implements MetadataField {
 
     public static final Timestamp INSTANCE = new Timestamp();
 

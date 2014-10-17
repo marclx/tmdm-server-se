@@ -1311,6 +1311,9 @@
 			<xsd:element maxOccurs="1" minOccurs="1" name="wsItemPK" nillable="false" type="tns:WSItemPK"/>
 			<xsd:element maxOccurs="1" minOccurs="1" name="partPath" nillable="true" type="xsd:string"/>
 			<xsd:element maxOccurs="1" minOccurs="0" name="override" nillable="true" type="xsd:boolean"/>
+			<xsd:element maxOccurs="1" minOccurs="0" name="withReport" nillable="true" type="xsd:boolean"/>
+            <xsd:element maxOccurs="1" minOccurs="0" name="source" nillable="true" type="xsd:string"/>
+            <xsd:element maxOccurs="1" minOccurs="0" name="invokeBeforeDeleting" nillable="true" type="xsd:boolean"/>
 		</xsd:sequence>
 	</xsd:complexType>
 	<xsd:element name="WSDropItem" type="tns:WSDropItem"/>

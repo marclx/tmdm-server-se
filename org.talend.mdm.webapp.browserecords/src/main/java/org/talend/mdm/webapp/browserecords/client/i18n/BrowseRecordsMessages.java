@@ -536,4 +536,6 @@ public interface BrowseRecordsMessages extends Messages {
     String explainResult_details_header();
 
     String matchdetail_title();
+
+    String foreignkeybean_filter_warnging();
 }

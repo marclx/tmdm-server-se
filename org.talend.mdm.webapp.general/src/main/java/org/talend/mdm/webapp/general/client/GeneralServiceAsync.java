@@ -47,4 +47,5 @@ public interface GeneralServiceAsync {
 
     void setDefaultLanguage(String language, AsyncCallback<Void> callback);
 
+    void isEnterpriseVersion(AsyncCallback<Boolean> callback);
 }

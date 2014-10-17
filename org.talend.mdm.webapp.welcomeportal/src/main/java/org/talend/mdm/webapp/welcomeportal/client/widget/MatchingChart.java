@@ -49,7 +49,7 @@ public class MatchingChart extends ChartPortlet {
 
         String setting = portalConfigs.getChartSetting(portletName);
         if (setting != null) {
-            configModel = new EntityConfigModel(setting);
+            configModel = new EntityConfigModel(startedAsOn, setting);
         } else {
             configModel = new EntityConfigModel(startedAsOn);
         }
@@ -148,7 +148,7 @@ public class MatchingChart extends ChartPortlet {
         plotOptions.setGridOptions(GridOptions.create().setHoverable(true));
 
         // create series
-        SeriesHandler seriesMatched = model.addSeries(Series.of("Matched")); //$NON-NLS-1$
+        SeriesHandler seriesMatched = model.addSeries(Series.of(MessagesFactory.getMessages().chart_matching_duplicates()));
 
         // add data
         for (String entityName : entityNamesSorted) {

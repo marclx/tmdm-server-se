@@ -1103,6 +1103,11 @@ public class HibernateStorage implements Storage {
     }
 
     @Override
+    public synchronized boolean isClosed() {
+        return factory == null || factory.isClosed();
+    }
+
+    @Override
     public void delete(Expression userQuery) {
         try {
             storageClassLoader.bind(Thread.currentThread());

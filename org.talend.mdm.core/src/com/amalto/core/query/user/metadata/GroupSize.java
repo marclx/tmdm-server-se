@@ -19,7 +19,7 @@ import com.amalto.core.query.user.TypedExpression;
 import com.amalto.core.query.user.UserStagingQueryBuilder;
 import com.amalto.core.query.user.Visitor;
 
-public class GroupSize implements TypedExpression, MetadataField {
+public class GroupSize implements MetadataField {
 
     public static final GroupSize INSTANCE = new GroupSize();
 

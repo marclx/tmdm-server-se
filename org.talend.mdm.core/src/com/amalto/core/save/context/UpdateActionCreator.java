@@ -209,6 +209,10 @@ public class UpdateActionCreator extends DefaultMetadataVisitor<List<Action>> {
             Accessor rightAccessor;
             try {
                 rightAccessor = newDocument.createAccessor(currentPath);
+                if (!rightAccessor.exist() && !isDeletingContainedElement) {
+                    // If new list does not exist, it means element was omitted in new version (legacy behavior).
+                    return;
+                }
                 leftAccessor = originalDocument.createAccessor(currentPath);
             } finally {
                 path.pop();
@@ -257,14 +261,20 @@ public class UpdateActionCreator extends DefaultMetadataVisitor<List<Action>> {
             if (!newAccessor.exist()) {
                 if (comparedField.isMany() && !preserveCollectionOldValues) {
                     // TMDM-5216: Visit sub fields include old/new values for sub elements.
+                    // TMDM-6868: Keeps previous value of isDeletingContainedElement in case element contains also
+                    // contained-typed elements.
                     if (comparedField instanceof ContainedTypeFieldMetadata) {
-                        isDeletingContainedElement = true;
-                        TypeMetadata type = repository.getNonInstantiableType(repository.getUserNamespace(), originalAccessor.getActualType());
-                        if (type == null) {
-                            type = ((ContainedTypeFieldMetadata) comparedField).getContainedType();
+                        boolean previous = isDeletingContainedElement; // Back up flag value
+                        try {
+                            isDeletingContainedElement = true;
+                            TypeMetadata type = repository.getNonInstantiableType(repository.getUserNamespace(), originalAccessor.getActualType());
+                            if (type == null) {
+                                type = ((ContainedTypeFieldMetadata) comparedField).getContainedType();
+                            }
+                            type.accept(this);
+                        } finally {
+                            isDeletingContainedElement = previous; // Restore previous value for flag.
                         }
-                        type.accept(this);
-                        isDeletingContainedElement = false;
                     } else if (!isDeletingContainedElement) {
                         // TMDM-5257: RemoveSimpleTypeNodeWithOccurrence
                         // Null values may happen if accessor is targeting an element that contains other elements

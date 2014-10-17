@@ -1195,7 +1195,7 @@ public abstract class IXtentisWSDelegator implements IBeanDelegator {
                     UpdateReportPOJO.OPERATION_TYPE_LOGICAL_DELETE,
                     wsDropItem.getPartPath(),
                     LocalUser.getLocalUser().getUsername(),
-                    wsDropItem.getInvokeBeforeSaving(),
+                    wsDropItem.getInvokeBeforeDeleting(),
                     wsDropItem.getWithReport(),
                     wsDropItem.getOverride()));
             return new WSDroppedItemPK(wsItemPK, wsDropItem.getPartPath(), null); // TODO Revision

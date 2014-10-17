@@ -43,10 +43,9 @@ public class WelcomePortalController extends Controller {
 
     private WelcomePortalServiceAsync service = (WelcomePortalServiceAsync) Registry.get(WelcomePortal.WELCOMEPORTAL_SERVICE);
 
-    PortalProperties portalConfig = null;
-
     public WelcomePortalController() {
         registerEventTypes(WelcomePortalEvents.InitFrame);
+        registerEventTypes(WelcomePortalEvents.RevertRefreshPortal);
     }
 
     @Override
@@ -62,8 +61,8 @@ public class WelcomePortalController extends Controller {
 
                 @Override
                 public void onSuccess(PortalProperties portalConfig) {
-                    AppEvent event = new AppEvent(WelcomePortalEvents.InitFrame, portalConfig);
-                    forwardToView(view, event);
+                    AppEvent eventWithData = new AppEvent(WelcomePortalEvents.InitFrame, portalConfig);
+                    forwardToView(view, eventWithData);
                 }
 
             });
@@ -71,6 +70,9 @@ public class WelcomePortalController extends Controller {
             forwardToView(view, event);
         } else if (type == WelcomePortalEvents.RefreshPortal) {
             forwardToView(view, event);
+        } else if (type == WelcomePortalEvents.RevertRefreshPortal) {
+            forwardToView(view, event);
         }
+
     }
 }

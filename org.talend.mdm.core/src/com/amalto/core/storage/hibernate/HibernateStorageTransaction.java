@@ -63,6 +63,9 @@ class HibernateStorageTransaction extends StorageTransaction {
 
     @Override
     public void begin() {
+        if (!session.isOpen()) {
+            throw new IllegalStateException("Could not start transaction: provided session is not ready for use (session is closed).");
+        }
         Transaction transaction = session.getTransaction();
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Transaction begin (session " + session.hashCode() + ")");

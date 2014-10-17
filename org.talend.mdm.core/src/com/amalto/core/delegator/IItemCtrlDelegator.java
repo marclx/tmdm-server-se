@@ -316,12 +316,19 @@ public abstract class IItemCtrlDelegator implements IBeanDelegator, IItemCtrlDel
 
     private static IWhereItem normalizeConditions(ArrayList<IWhereItem> conditions) {
         IWhereItem viewCondition = null;
+        String predicate = null;
+        int i = 0;
         for (IWhereItem condition : conditions) {
             if (viewCondition == null) {
                 viewCondition = condition;
-            } else {
                 if (condition instanceof WhereCondition) {
-                    String predicate = ((WhereCondition) condition).getStringPredicate();
+                    predicate = ((WhereCondition) condition).getStringPredicate();
+                }
+            } else {
+                if (predicate == null) {
+                    throw new IllegalArgumentException("No predicate in '" + conditions.get(i - 1) + "'.");
+                }
+                if (condition instanceof WhereCondition) {
                     if (WhereCondition.PRE_OR.equals(predicate)) {
                         viewCondition = new WhereOr(Arrays.asList(viewCondition, condition));
                     } else if (WhereCondition.PRE_AND.equals(predicate)) {
@@ -336,8 +343,10 @@ public abstract class IItemCtrlDelegator implements IBeanDelegator, IItemCtrlDel
                     } else {
                         throw new IllegalArgumentException("Not supported predicate: " + predicate);
                     }
+                    predicate = ((WhereCondition) condition).getStringPredicate();
                 }
             }
+            i++;
         }
         return viewCondition;
     }

@@ -29,9 +29,23 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import com.amalto.core.delegator.ILocalUser;
 import com.amalto.core.util.LicenseUserNumberValidationException;
+import com.amalto.core.util.LocalUser;
 import com.amalto.core.util.Messages;
 import com.amalto.core.util.MessagesFactory;
+import com.amalto.core.webservice.WSDataCluster;
+import com.amalto.core.webservice.WSDataClusterPK;
+import com.amalto.core.webservice.WSDataModel;
+import com.amalto.core.webservice.WSDataModelPK;
+import com.amalto.core.webservice.WSGetDataCluster;
+import com.amalto.core.webservice.WSGetDataModel;
+import com.amalto.core.webservice.WSGetItem;
+import com.amalto.core.webservice.WSItem;
+import com.amalto.core.webservice.WSItemPK;
+import com.amalto.core.webservice.WSLogout;
+import com.amalto.core.webservice.WSRegexDataClusterPKs;
+import com.amalto.core.webservice.WSRegexDataModelPKs;
 import com.amalto.webapp.core.bean.Configuration;
 import com.amalto.webapp.core.util.Menu;
 import com.amalto.webapp.core.util.SessionListener;
@@ -40,15 +54,6 @@ import com.amalto.webapp.core.util.SystemLocaleFactory;
 import com.amalto.webapp.core.util.SystemLocaleInitializable;
 import com.amalto.webapp.core.util.Util;
 import com.amalto.webapp.core.util.Webapp;
-import com.amalto.core.webservice.WSDataCluster;
-import com.amalto.core.webservice.WSDataClusterPK;
-import com.amalto.core.webservice.WSDataModel;
-import com.amalto.core.webservice.WSDataModelPK;
-import com.amalto.core.webservice.WSGetDataCluster;
-import com.amalto.core.webservice.WSGetDataModel;
-import com.amalto.core.webservice.WSLogout;
-import com.amalto.core.webservice.WSRegexDataClusterPKs;
-import com.amalto.core.webservice.WSRegexDataModelPKs;
 
 public class GeneralAction implements GeneralService {
 
@@ -162,8 +167,14 @@ public class GeneralAction implements GeneralService {
             UserBean userBean = new UserBean();
             userBean.setEnterprise(com.amalto.core.util.Util.isEnterprise());
             if (!com.amalto.core.util.Util.isEnterprise()) {
-                userBean.setName(Util.getLoginUserName());
+                // TMDM-7629 init locaUser cache
+                String userName = Util.getLoginUserName();
+                userBean.setName(userName);
                 userBean.setUniverse("UNKNOWN"); //$NON-NLS-1$
+                WSItem item = Util.getPort().getItem(
+                        new WSGetItem(new WSItemPK(new WSDataClusterPK("PROVISIONING"), "User", new String[] { userName }))); //$NON-NLS-1$ //$NON-NLS-2$
+                ILocalUser iUser = LocalUser.getLocalUser();
+                iUser.setUserXML(item.getContent());
                 return userBean;
             }
             String givenname = null;
@@ -238,7 +249,7 @@ public class GeneralAction implements GeneralService {
             if (storeLang != null && !"".equals(storeLang)) { //$NON-NLS-1$
                 lang = storeLang;
             } else {
-                //language is not set try to store it (if license is set)
+                // language is not set try to store it (if license is set)
                 setDefaultLanguage(language, true);
             }
             return Utils.getLanguages(lang);
@@ -290,6 +301,11 @@ public class GeneralAction implements GeneralService {
     @Override
     public void setDefaultLanguage(String language) throws ServiceException {
         setDefaultLanguage(language, false);
+    }
+
+    @Override
+    public boolean isEnterpriseVersion() throws ServiceException {
+        return Webapp.INSTANCE.isEnterpriseVersion();
     }
 
     private void setDefaultLanguage(String language, boolean failQuietly) throws ServiceException {

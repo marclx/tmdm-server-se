@@ -20,7 +20,7 @@ import com.amalto.core.query.user.UserQueryBuilder;
 import com.amalto.core.query.user.Visitor;
 import com.amalto.core.storage.record.DataRecord;
 
-public class TaskId implements TypedExpression, MetadataField {
+public class TaskId implements MetadataField {
 
     public static final TaskId INSTANCE = new TaskId();
 

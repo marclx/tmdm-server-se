@@ -238,4 +238,14 @@ public class CompositeStorage implements Storage {
         }
     }
 
+    @Override
+    public boolean isClosed() {
+        for (Storage storage : storages) {
+            if (storage.isClosed()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

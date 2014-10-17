@@ -54,7 +54,7 @@ public abstract class BasePortlet extends Portlet {
         titles.put(WelcomePortal.CHART_DATA, MessagesFactory.getMessages().chart_data_title());
         titles.put(WelcomePortal.CHART_JOURNAL, MessagesFactory.getMessages().chart_journal_title());
         titles.put(WelcomePortal.CHART_ROUTING_EVENT, MessagesFactory.getMessages().chart_routing_event_title());
-        titles.put(WelcomePortal.CHART_MATCHING, MessagesFactory.getMessages().chart_mathcing_title());
+        titles.put(WelcomePortal.CHART_MATCHING, MessagesFactory.getMessages().chart_matching_title());
 
         icons = new HashMap<String, AbstractImagePrototype>(5);
         icons.put(WelcomePortal.START, AbstractImagePrototype.create(Icons.INSTANCE.start()));
@@ -81,17 +81,15 @@ public abstract class BasePortlet extends Portlet {
 
     protected PortalProperties portalConfigs;
 
-    private boolean isAuto;
+    private boolean autoOn;
 
     protected boolean startedAsOn;
 
     private int interval;
 
-    protected String cookieskey;
-
     protected ConfigModel configModel;
 
-    protected boolean configModelChanged;
+    protected boolean configSettingChanged;
 
     protected boolean autoRefreshSwithced;
 
@@ -107,9 +105,27 @@ public abstract class BasePortlet extends Portlet {
 
                     @Override
                     public void componentSelected(IconButtonEvent ce) {
-                        BasePortlet.this.hide();
-                        ((MainFramePanel) BasePortlet.this.portal).updateVisibilities();
-                        removePortlet(portletName);
+                        // update db to set its visibility and autorefresh to false
+                        service.savePortalConfigForClose(portletName, new SessionAwareAsyncCallback<Void>() {
+
+                            @Override
+                            public void onSuccess(Void result1) {
+                                BasePortlet.this.hide();
+                                ((MainFramePanel) portal).updateVisibilities();
+                                resetAutofresh(false);
+                                portalConfigs.add(PortalProperties.KEY_AUTO_ONOFFS, portletName, configModel.isAutoRefresh()
+                                        .toString());
+                                portalConfigs.add(PortalProperties.KEY_PORTLET_VISIBILITIES, portletName,
+                                        ((Boolean) BasePortlet.this.isVisible()).toString());
+                                removePortlet(portletName);
+                            }
+
+                            @Override
+                            protected void doOnFailure(Throwable caught) {
+                                super.doOnFailure(caught);
+                                // do nothing
+                            }
+                        });
                     }
 
                 }));
@@ -163,26 +179,32 @@ public abstract class BasePortlet extends Portlet {
         }
         interval = ((MainFramePanel) portal).getInterval();
 
-        // TODO: should we store 'interval' into db too ?
         interval = ((MainFramePanel) portal).getInterval();
+        // init and used for non-chart portlets, overwritten in chart portlets
+        configModel = new BaseConfigModel(startedAsOn);
 
-        configModel = new BaseConfigModel(startedAsOn); // init and used for non-chart portlets, overwritten in chart
-        // portlets
+    }
 
+    public void resetAutofresh(boolean auto) {
+        autoRefresh(auto);
+        configModel.setAutoRefresh(auto);
     }
 
     protected PortletConfigListener initConfigListener() {
         PortletConfigListener configListener = new PortletConfigListener() {
 
             @Override
-            public void onConfigUpdate(ConfigModel configModelFromUser) {
-                if (!BasePortlet.this.configModel.equals(configModelFromUser)) {
-                    BasePortlet.this.configModel = configModelFromUser;
-                    BasePortlet.this.autoRefresh(configModelFromUser.isAutoRefresh());
-                    service.savePortalConfig(portalConfigs, new SessionAwareAsyncCallback<Void>() {
+            public void onConfigUpdate(final ConfigModel configModelFromUser) {
+                if (!configModel.equals(configModelFromUser)) {
+                    service.savePortalConfig(PortalProperties.KEY_AUTO_ONOFFS, portletName, configModelFromUser.isAutoRefresh()
+                            .toString(), new SessionAwareAsyncCallback<Void>() {
 
                         @Override
-                        public void onSuccess(Void result) {
+                        public void onSuccess(Void result1) {
+                            configModel = configModelFromUser;
+                            autoRefresh(configModel.isAutoRefresh());
+                            portalConfigs.add(PortalProperties.KEY_AUTO_ONOFFS, portletName, configModel.isAutoRefresh()
+                                    .toString());
                             return;
                         }
 
@@ -208,7 +230,7 @@ public abstract class BasePortlet extends Portlet {
 
             @Override
             public void run() {
-                if (isAuto) {
+                if (autoOn) {
                     refresh();
                     schedule(interval);
                 } else {
@@ -237,11 +259,15 @@ public abstract class BasePortlet extends Portlet {
         this.setIcon(icons.get(portletName));
     }
 
-    public void autoRefresh(boolean auto) {
-        if (isAuto != auto) {
-            isAuto = auto;
+    public boolean isAutoOn() {
+        return this.autoOn;
+    }
 
-            if (isAuto) {
+    public void autoRefresh(boolean auto) {
+        if (autoOn != auto) {
+            autoOn = auto;
+
+            if (autoOn) {
                 autoRefresher.run();
             }
         }

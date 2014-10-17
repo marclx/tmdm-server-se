@@ -477,8 +477,8 @@ class ClassCreator extends DefaultMetadataVisitor<Void> {
         }
         type = MetadataUtils.getSuperConcreteType(type);
         boolean validType = !(Types.DATE.equals(type.getName()) || Types.DATETIME.equals(type.getName())
-                || Types.TIME.equals(type.getName()) || Types.DURATION.equals(type.getName())
-                || Types.BYTE.equals(type.getName()) || Types.UNSIGNED_BYTE.equals(type.getName()));
+                || Types.TIME.equals(type.getName()) || Types.BYTE.equals(type.getName()) || Types.UNSIGNED_BYTE.equals(type
+                .getName()));
         if (!metadata.isMany() && validType) {
             for (String numberTypeName : Types.NUMBERS) {
                 if (numberTypeName.equals(type.getName())) {

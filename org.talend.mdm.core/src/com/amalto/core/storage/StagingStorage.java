@@ -258,6 +258,11 @@ public class StagingStorage implements Storage {
         delegate.adapt(newRepository, force);
     }
 
+    @Override
+    public boolean isClosed() {
+        return delegate.isClosed();
+    }
+
     private static class StagingUpdateAction {
 
         private final String value;

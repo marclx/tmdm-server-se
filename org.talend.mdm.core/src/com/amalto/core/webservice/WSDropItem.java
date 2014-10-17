@@ -12,7 +12,7 @@ public class WSDropItem {
     protected java.lang.Boolean override;
     protected java.lang.Boolean withReport = false;
     protected java.lang.String source = ""; //$NON-NLS-1$
-    protected java.lang.Boolean invokeBeforeSaving = false;
+    protected java.lang.Boolean invokeBeforeDeleting = false;
 
     public WSDropItem() {
     }
@@ -39,12 +39,12 @@ public class WSDropItem {
         this.withReport = withReport;
     }
 
-    public Boolean getInvokeBeforeSaving() {
-        return invokeBeforeSaving;
+    public Boolean getInvokeBeforeDeleting() {
+        return invokeBeforeDeleting;
     }
 
-    public void setInvokeBeforeSaving(Boolean invokeBeforeSaving) {
-        this.invokeBeforeSaving = invokeBeforeSaving;
+    public void setInvokeBeforeDeleting(Boolean invokeBeforeDeleting) {
+        this.invokeBeforeDeleting = invokeBeforeDeleting;
     }
 
     public com.amalto.core.webservice.WSItemPK getWsItemPK() {

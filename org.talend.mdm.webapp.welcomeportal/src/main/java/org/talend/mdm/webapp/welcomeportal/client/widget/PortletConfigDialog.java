@@ -133,8 +133,8 @@ public class PortletConfigDialog extends Window {
         };
 
         configGroupAutoRefresh.setOrientation(Orientation.HORIZONTAL);
-        configGroupAutoRefresh.setFieldLabel("Auto Refresh"); //$NON-NLS-1$
-        configGroupChart.setFieldLabel("Entities"); //$NON-NLS-1$
+        configGroupAutoRefresh.setFieldLabel(MessagesFactory.getMessages().autorefresh());
+        configGroupChart.setFieldLabel(MessagesFactory.getMessages().entities());
         configGroupChart.setOrientation(Orientation.VERTICAL);
 
         Radio autoOn = new Radio();
@@ -157,7 +157,7 @@ public class PortletConfigDialog extends Window {
             if (isForTopEntities) {
 
                 configGroupChart.setName("Entities"); //$NON-NLS-1$
-                configGroupChart.setFieldLabel("Entities"); //$NON-NLS-1$
+                configGroupChart.setFieldLabel(MessagesFactory.getMessages().entities());
 
                 Radio top5Rd = new Radio();
                 top5Rd.setFieldLabel(TOP_FIVE);
@@ -183,7 +183,7 @@ public class PortletConfigDialog extends Window {
                 }
             } else {
                 configGroupChart.setName("Time Frame"); //$NON-NLS-1$
-                configGroupChart.setFieldLabel("Time Frame"); //$NON-NLS-1$
+                configGroupChart.setFieldLabel(MessagesFactory.getMessages().timeframe());
 
                 Radio lastWeekRd = new Radio();
                 lastWeekRd.setFieldLabel(TIMEFRAME_WEEK);
