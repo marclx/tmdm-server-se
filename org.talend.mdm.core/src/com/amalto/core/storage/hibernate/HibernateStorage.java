@@ -177,7 +177,7 @@ public class HibernateStorage implements Storage {
 
     private Configuration configuration;
 
-    private RDBMSDataSource dataSource;
+    protected RDBMSDataSource dataSource;
 
     private MetadataRepository userMetadataRepository;
 
@@ -259,7 +259,7 @@ public class HibernateStorage implements Storage {
         internalInit();
     }
 
-    private void internalInit() {
+    protected void internalInit() {
         if (!dataSource.supportFullText()) {
             LOGGER.warn("Storage '" + storageName + "' (" + storageType + ") is not configured to support full text queries.");
         }

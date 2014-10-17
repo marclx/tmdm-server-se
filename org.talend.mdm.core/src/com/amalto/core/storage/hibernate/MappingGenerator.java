@@ -59,17 +59,10 @@ public class MappingGenerator extends DefaultMetadataVisitor<Element> {
     private boolean generateConstrains;
 
     public MappingGenerator(Document document, TableResolver resolver, RDBMSDataSource dataSource) {
-        this(document, resolver, dataSource, true);
-    }
-
-    public MappingGenerator(Document document,
-                            TableResolver resolver,
-                            RDBMSDataSource dataSource,
-                            boolean generateConstrains) {
         this.document = document;
         this.resolver = resolver;
         this.dataSource = dataSource;
-        this.generateConstrains = generateConstrains;
+        this.generateConstrains = dataSource.generateConstraints();
     }
 
     @Override

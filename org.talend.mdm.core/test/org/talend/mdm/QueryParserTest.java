@@ -235,4 +235,15 @@ public class QueryParserTest extends TestCase {
         assertEquals("Contained2", ((Isa) condition).getType().getName());
         assertEquals(Field.class, ((Isa) condition).getExpression().getClass());
     }
+    
+    public void testQuery15() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query15.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        At condition = select.getHistory();
+        assertNotNull(condition);
+        assertEquals(At.Swing.BEFORE, condition.getSwing());
+        assertEquals(1000, condition.getDateTime());
+    }
 }

@@ -268,7 +268,7 @@ public class DataSourceFactory {
             return new RDBMSDataSource(name, dialectName, driverClassName, userName, password, connectionPoolMinSize,
                     connectionPoolMaxSize, indexDirectory, cacheDirectory, caseSensitiveSearch, schemaGeneration,
                     generateTechnicalFK, advancedProperties, connectionURL, databaseName, containsOptimization, initPassword,
-                    initUserName, initConnectionURL);
+                    initUserName, initConnectionURL, true);
         } else {
             // Invoke extensions for datasource extensions
             ServiceLoader<DataSourceExtension> extensions = ServiceLoader.load(DataSourceExtension.class);

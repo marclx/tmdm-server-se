@@ -16,6 +16,8 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.amalto.core.storage.StorageType;
+import com.amalto.core.storage.inmemory.MemoryStorage;
 import junit.framework.TestCase;
 
 import org.apache.log4j.Logger;

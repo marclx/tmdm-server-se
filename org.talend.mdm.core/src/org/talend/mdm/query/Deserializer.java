@@ -140,6 +140,22 @@ class Deserializer implements JsonDeserializer<Expression> {
             if (select.has("limit")) { //$NON-NLS-1$
                 queryBuilder.limit(select.get("limit").getAsInt()); //$NON-NLS-1$
             }
+            // Process history browsing (optional)
+            if (select.has("as_of")) { //$NON-NLS-1$
+                JsonElement element = select.get("as_of"); //$NON-NLS-1$
+                if (element.isJsonObject()) {
+                    JsonObject object = element.getAsJsonObject();
+                    JsonElement date = object.get("date"); //$NON-NLS-1$
+                    if (date == null) {
+                        throw new IllegalArgumentException("Expected 'date' element in '" + element + "'.");
+                    }
+                    queryBuilder.at(date.getAsString());
+                    // Swing is optional
+                    if (object.has("swing")) { //$NON-NLS-1$
+                        queryBuilder.swing(object.get("swing").getAsString()); //$NON-NLS-1$
+                    }
+                }
+            }
         } else {
             throw new IllegalArgumentException("Malformed query (expected a top level object).");
         }

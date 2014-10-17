@@ -140,7 +140,7 @@ public class CacheStorage implements Storage {
                                 + ").");
                     }
                     cacheValue.lastAccessTime = System.currentTimeMillis();
-                    return new CacheResults(cacheValue.results);
+                    return new CachedResults(cacheValue.results);
                 } else {
                     // Cache hit! (but value expired in cache)
                     if (LOGGER.isDebugEnabled()) {
@@ -169,7 +169,7 @@ public class CacheStorage implements Storage {
             }
             cacheValue.lastAccessTime = System.currentTimeMillis();
             cache.put(userQuery, cacheValue);
-            return new CacheResults(records);
+            return new CachedResults(records);
         } else {
             return delegate.fetch(userQuery);
         }
@@ -276,31 +276,4 @@ public class CacheStorage implements Storage {
 
     }
 
-    private static class CacheResults implements StorageResults {
-
-        private final List<DataRecord> records;
-
-        public CacheResults(List<DataRecord> records) {
-            this.records = records;
-        }
-
-        @Override
-        public int getSize() {
-            return records.size();
-        }
-
-        @Override
-        public int getCount() {
-            return records.size();
-        }
-
-        @Override
-        public void close() {
-        }
-
-        @Override
-        public Iterator<DataRecord> iterator() {
-            return records.iterator();
-        }
-    }
 }

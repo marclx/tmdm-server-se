@@ -138,6 +138,9 @@ public class XmlStringDataRecordReader implements DataRecordReader<String> {
                                 continue;
                             }
                             field = ((ComplexTypeMetadata) typeMetadata).getField(currentElementName);
+                            if (field == null) {
+                                throw new IllegalArgumentException("Type '" + typeMetadata.getName() + "' does not own field '" + currentElementName + "'.");
+                            }
                             TypeMetadata fieldType = field.getType();
                             if (ClassRepository.EMBEDDED_XML.equals(fieldType.getName())) {
                                 xmlAccumulatorLevel = level;
