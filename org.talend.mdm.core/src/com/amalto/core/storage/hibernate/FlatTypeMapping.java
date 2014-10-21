@@ -246,7 +246,14 @@ class FlatTypeMapping extends TypeMapping {
                                 DataRecord referencedRecord = new DataRecord(mapping.getUser(), UnsupportedDataRecordMetadata.INSTANCE);
                                 for (FieldMetadata fkField : mapping.getDatabase().getFields()) {
                                     if (mapping.getUser(fkField) != null) {
-                                        referencedRecord.set(mapping.getUser(fkField), wrapper.get(fkField.getName()));
+                                        Object o = wrapper.get(fkField.getName());
+                                        if (fkField instanceof ReferenceFieldMetadata) {
+                                            TypeMapping referenceMapping = mappings.getMappingFromDatabase(((ReferenceFieldMetadata) fkField).getReferencedType());
+                                            DataRecord innerReferencedRecord = new DataRecord(referenceMapping.getUser(), UnsupportedDataRecordMetadata.INSTANCE);
+                                            referenceMapping.setValues((Wrapper) o, innerReferencedRecord);
+                                        } else {
+                                            referencedRecord.set(mapping.getUser(fkField), o);
+                                        }
                                     }
                                 }
                                 to.set(userField, referencedRecord);
