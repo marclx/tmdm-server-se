@@ -1235,14 +1235,16 @@
 			</xsd:documentation>
 		</xsd:annotation>
 		<xsd:sequence>
-		<xsd:element maxOccurs="1" minOccurs="1" name="xml" nillable="false" type="xsd:string"/>
+			<xsd:element maxOccurs="1" minOccurs="1" name="xml" nillable="false" type="xsd:string"/>
 			<xsd:element maxOccurs="1" minOccurs="1" name="datacluster" nillable="false" type="xsd:string"/>
 			<xsd:element maxOccurs="1" minOccurs="1" name="pivot" nillable="false" type="xsd:string"/>
-			<xsd:element maxOccurs="1" minOccurs="0" name="datamodel" nillable="false" type="xsd:string"/>		
+			<xsd:element maxOccurs="1" minOccurs="0" name="datamodel" nillable="false" type="xsd:string"/>
 			<xsd:element maxOccurs="1" minOccurs="0" name="keyXPath" nillable="false" type="xsd:string"/>
 			<xsd:element maxOccurs="1" minOccurs="0" default="-1" name="startingPosition" nillable="false" type="xsd:int"/>
 			<xsd:element default="false" maxOccurs="1" minOccurs="0" name="overwrite" nillable="false" type="xsd:boolean"/>
-		</xsd:sequence>		
+			<xsd:element default="false" maxOccurs="1" minOccurs="1" name="report" nillable="false" type="xsd:boolean"/>
+			<xsd:element default="false" maxOccurs="1" minOccurs="0" name="source" nillable="false" type="xsd:string"/>
+		</xsd:sequence>
 	</xsd:complexType>
 	<xsd:element name="WSPartialPutItem" type="tns:WSPartialPutItem"/>	
 		
