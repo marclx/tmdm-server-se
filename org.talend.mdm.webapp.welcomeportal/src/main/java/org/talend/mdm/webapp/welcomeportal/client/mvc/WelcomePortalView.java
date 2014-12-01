@@ -115,17 +115,14 @@ public class WelcomePortalView extends View {
             Log.info("Revert RefreshPortal due to saving to db failed... ");//$NON-NLS-1$
         }
 
-        ContentPanel container = GenerateContainer.getContentPanel();
+        removePortal();
 
         portalConfigCache = (PortalProperties) event.getData();
 
         numColumns = portalConfigCache.getColumnNum();
 
-        ((MainFramePanel) portal).stopAutoRefresh();
-        ((MainFramePanel) portal).removeAllPortlets();
-
-        container.remove(portal);
         portal = new MainFramePanel(numColumns, portalConfigCache, isEnterprise);
+        ContentPanel container = GenerateContainer.getContentPanel();
         container.add(portal);
         container.layout(true);
     }
@@ -151,20 +148,24 @@ public class WelcomePortalView extends View {
             Log.info("Refresh with different column number... ");//$NON-NLS-1$
         }
 
-        ContentPanel container = GenerateContainer.getContentPanel();
+        removePortal();
+
         numColumns = getColumNum(userConfig.get(USING_DEFAULT_COLUMN_NUM));
 
         if (isEnterprise) {
             chartsOn = userConfig.get(CHARTS_ENABLED);
         }
 
-        ((MainFramePanel) portal).stopAutoRefresh();
-        ((MainFramePanel) portal).removeAllPortlets();
-        container.remove(portal);
-
         portal = new MainFramePanel(numColumns, portalConfigCache, userConfig, isEnterprise);
+        ContentPanel container = GenerateContainer.getContentPanel();
         container.add(portal);
         container.layout(true);
+    }
+
+    public void removePortal() {
+        ((MainFramePanel) portal).stopAutoRefresh();
+        ((MainFramePanel) portal).removeAllPortlets();
+        GenerateContainer.getContentPanel().remove(portal);
     }
 
     private int getColumNum(boolean usingDefaultCol) {
