@@ -258,6 +258,18 @@ public class StorageQueryTest extends StorageTestCase {
                 .add(factory
                         .read("1", repository, ContainedEntityB,
                                 "<ContainedEntityB xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><id>B_record5</id></ContainedEntityB>"));
+        allRecords
+        .add(factory
+                .read("1", repository, city,
+                        "<City xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><Code>BJ</Code><Name>Beijing</Name></City>"));
+        allRecords
+        .add(factory
+                .read("1", repository, city,
+                        "<City xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><Code>SH</Code><Name>Shanghai</Name></City>"));
+        allRecords
+        .add(factory
+                .read("1", repository, organization,
+                        "<Organization xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><org_id>1</org_id><post_address><street>changan rd</street><city>[BJ]</city></post_address><org_address><street>waitan rd</street><city>[SH]</city></org_address></Organization>"));
         try {
             storage.begin();
             storage.update(allRecords);
@@ -2989,6 +3001,33 @@ public class StorageQueryTest extends StorageTestCase {
             expectedResults.remove(s.replaceAll("\\r|\\n|\\t", ""));
         }
         assertTrue(expectedResults.isEmpty());
+    }
+    
+    public void testFKInReusebleTypeWithViewSearch() throws Exception {
+        UserQueryBuilder qb = from(organization).selectId(organization)
+                .select(organization.getField("org_address/city"))
+                .select(organization.getField("post_address/city"));
+        StorageResults results = storage.fetch(qb.getSelect());
+        assertEquals(1, results.getCount());
+        DataRecordWriter writer = new ViewSearchResultsWriter();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        String resultAsString = "";
+        for (DataRecord result : results) {
+            try {
+                writer.write(result, output);
+            } catch (IOException e) {
+                throw new XmlServerException(e);
+            }
+            resultAsString += new String(output.toByteArray(), Charset.forName("UTF-8"));            
+            output.reset();
+        }        
+
+        String startRoot = "<result xmlns:metadata=\"http://www.talend.com/mdm/metadata\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">";
+        String endRoot = "</result>";
+        
+        String expectedResult = startRoot
+                + "<org_id>1</org_id><city>[SH]</city><city>[BJ]</city>" + endRoot;        
+        assertTrue(expectedResult.equals(resultAsString.replaceAll("\\r|\\n|\\t", "")));
     }
 
     public void testStringFieldConstraint() throws Exception {
