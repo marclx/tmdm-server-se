@@ -765,6 +765,41 @@ public class StorageQueryTest extends StorageTestCase {
         }
     }
 
+    public void testOrderByPK() throws Exception {
+        // Test ASC direction
+        FieldMetadata personLastName = person.getField("lastname");
+        UserQueryBuilder qb = from(person).select(personLastName).orderBy(person.getField("id"), OrderBy.Direction.ASC);
+        String[] ascExpectedValues = { "Dupond", "Dupont", "Leblanc", "Leblanc" };
+
+        StorageResults results = storage.fetch(qb.getSelect());
+        try {
+            assertEquals(4, results.getSize());
+            assertEquals(4, results.getCount());
+
+            int i = 0;
+            for (DataRecord result : results) {
+                assertEquals(ascExpectedValues[i++], result.get(personLastName));
+            }
+
+        } finally {
+            results.close();
+        }
+        // Test normalize
+        qb = from(person).select(personLastName)
+                .orderBy(person.getField("id"), OrderBy.Direction.ASC)
+                .orderBy(person.getField("id"), OrderBy.Direction.ASC);
+        assertEquals(1, ((Select) qb.getSelect().normalize()).getOrderBy().size());
+        qb = from(person).select(personLastName)
+                .orderBy(person.getField("id"), OrderBy.Direction.ASC)
+                .orderBy(person.getField("id"), OrderBy.Direction.DESC);
+        assertEquals(2, ((Select) qb.getSelect().normalize()).getOrderBy().size());
+        qb = from(person).select(personLastName)
+                .orderBy(person.getField("id"), OrderBy.Direction.ASC)
+                .orderBy(person.getField("lastname"), OrderBy.Direction.ASC)
+                .orderBy(person.getField("lastname"), OrderBy.Direction.ASC);
+        assertEquals(2, ((Select) qb.getSelect().normalize()).getOrderBy().size());
+    }
+
     public void testOrderByASC() throws Exception {
         // Test ASC direction
         FieldMetadata personLastName = person.getField("lastname");

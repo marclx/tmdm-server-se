@@ -12,31 +12,23 @@
 // ============================================================================
 package com.amalto.core.query.optimization;
 
-import java.util.Collection;
-import java.util.List;
-
+import com.amalto.core.query.user.*;
+import com.amalto.core.query.user.metadata.*;
+import com.amalto.core.storage.datasource.RDBMSDataSource;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.talend.mdm.commmon.metadata.ComplexTypeMetadata;
 import org.talend.mdm.commmon.metadata.FieldMetadata;
 
-import com.amalto.core.query.user.Alias;
-import com.amalto.core.query.user.Count;
-import com.amalto.core.query.user.Distinct;
-import com.amalto.core.query.user.Field;
-import com.amalto.core.query.user.Max;
-import com.amalto.core.query.user.Min;
-import com.amalto.core.query.user.OrderBy;
-import com.amalto.core.query.user.Select;
-import com.amalto.core.query.user.TypedExpression;
-import com.amalto.core.query.user.UserQueryDumpConsole;
-import com.amalto.core.storage.datasource.RDBMSDataSource;
-
+import java.util.HashSet;
+import java.util.Set;
 
 public class ImplicitOrderBy implements Optimizer {
-    
-    private static final Logger LOGGER = Logger.getLogger(ImplicitOrderBy.class);
-    
-    private final RDBMSDataSource dataSource;
+
+    private static final Logger               LOGGER                  = Logger.getLogger(ImplicitOrderBy.class);
+
+    private static final AllowImplicitOrderBy ALLOW_IMPLICIT_ORDER_BY = new AllowImplicitOrderBy();
+
+    private final RDBMSDataSource             dataSource;
 
     public ImplicitOrderBy(RDBMSDataSource dataSource) {
         this.dataSource = dataSource;
@@ -46,57 +38,152 @@ public class ImplicitOrderBy implements Optimizer {
     public void optimize(Select select) {
         switch (dataSource.getDialectName()) {
         case H2:
-            return;
         case ORACLE_10G:
-            return;
         case MYSQL:
+        case DB2:
+            // Nothing to do for those databases
             return;
         case SQL_SERVER:
-            return;
-        case DB2:
-            return;
         case POSTGRES:
-            if (select.getPaging().getLimit() < Integer.MAX_VALUE && !select.getTypes().isEmpty()) { // has paging defined
-                if (select.getOrderBy() == null || select.getOrderBy().size() == 0) {
+            // If query has paging, check if an implicit order by is needed and possible
+            if (select.getPaging().getStart() > 0 && !select.getTypes().isEmpty()) {
+                Set<TypedExpression> missingOrderByExpressions = getMissingOrderByExpressions(select);
+                if (!missingOrderByExpressions.isEmpty()) {
                     if (LOGGER.isDebugEnabled()) {
                         LOGGER.debug("Adding implicit order by id to keep consistent order trough pages."); //$NON-NLS-1$
                     }
-                    ComplexTypeMetadata typeMetadata = select.getTypes().get( 0 );
-                    Collection<FieldMetadata> keyFields = typeMetadata.getKeyFields();
-                    List<TypedExpression> list = select.getSelectedFields();                    
-                    Boolean addOrderEnable = true;
-                    
-                    if(list != null && list.size() > 0){                        
-                        for(TypedExpression te : list){
-                            if(te instanceof Alias){
-                                String aliasName = ((Alias)te).getAliasName();
-                                if(aliasName != null && (aliasName.equalsIgnoreCase("count")  //$NON-NLS-1$
-                                        || aliasName.equalsIgnoreCase("distinct")   //$NON-NLS-1$
-                                        || aliasName.equalsIgnoreCase("max")   //$NON-NLS-1$
-                                        || aliasName.equalsIgnoreCase("min"))){ //$NON-NLS-1$
-                                    addOrderEnable = false;
-                                    break;
-                                }
-                            } else if(te instanceof Count || te instanceof Distinct || te instanceof Max  || te instanceof Min){
-                                addOrderEnable = false;
-                                break;
-                            }
+                    // Check if projection allow use of implicit order by.
+                    boolean enableAddOrder = true;
+                    for (TypedExpression typedExpression : select.getSelectedFields()) {
+                        Boolean allow = typedExpression.accept(ALLOW_IMPLICIT_ORDER_BY);
+                        if (allow != null && !allow) {
+                            enableAddOrder = false;
+                            break; // No need to check other fields, only one field is enough to cancel
                         }
                     }
-
-                    if(addOrderEnable){
-                        select.addOrderBy(new OrderBy(new Field(keyFields.iterator().next()), OrderBy.Direction.ASC));
+                    if (enableAddOrder) {
+                        for (TypedExpression missingOrderByExpression : missingOrderByExpressions) {
+                            select.addOrderBy(new OrderBy(missingOrderByExpression, OrderBy.Direction.ASC));
+                        }
                     } else {
                         if (LOGGER.isDebugEnabled()) {
                             LOGGER.debug("Order by not supported by this query: "); //$NON-NLS-1$
-                            select.accept(new UserQueryDumpConsole(LOGGER));
+                            select.accept(new UserQueryDumpConsole(LOGGER, Level.DEBUG));
                         }
+                    }
+                } else {
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Not adding implicit order by (already present in query)"); //$NON-NLS-1$
                     }
                 }
             }
             return;
         default:
-            throw new IllegalArgumentException("No support for dialect '" + dataSource.getDialectName() + "'.");  //$NON-NLS-1$//$NON-NLS-2$
+            throw new IllegalArgumentException("No support for dialect '" + dataSource.getDialectName() + "'."); //$NON-NLS-1$//$NON-NLS-2$
+        }
+    }
+
+    private Set<TypedExpression> getMissingOrderByExpressions(Select select) {
+        // Compute already present orderBy expressions
+        Set<TypedExpression> orderByExpressions = new HashSet<TypedExpression>();
+        for (OrderBy orderBy : select.getOrderBy()) {
+            orderByExpressions.add(orderBy.getExpression());
+        }
+        // Create key fields expressions
+        Set<TypedExpression> neededExpressions = new HashSet<TypedExpression>();
+        for (FieldMetadata field : select.getTypes().get(0).getKeyFields()) {
+            neededExpressions.add(new Field(field));
+        }
+        // Compute missing expressions
+        neededExpressions.removeAll(orderByExpressions);
+        return neededExpressions;
+    }
+
+    private static class AllowImplicitOrderBy extends VisitorAdapter<Boolean> {
+
+        @Override
+        public Boolean visit(Type type) {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Boolean visit(Count count) {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Boolean visit(Distinct distinct) {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Boolean visit(Max max) {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Boolean visit(Min min) {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Boolean visit(Timestamp timestamp) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(TaskId taskId) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(StagingStatus stagingStatus) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(StagingError stagingError) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(StagingSource stagingSource) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(GroupSize groupSize) {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Boolean visit(Field field) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(Alias alias) {
+            return alias.getTypedExpression().accept(this);
+        }
+
+        @Override
+        public Boolean visit(FullText fullText) {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Boolean visit(FieldFullText fieldFullText) {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Boolean visit(IndexedField indexedField) {
+            return Boolean.FALSE;
+        }
+
+        @Override
+        public Boolean visit(StagingBlockKey stagingBlockKey) {
+            return Boolean.TRUE;
         }
     }
 }
