@@ -1182,26 +1182,28 @@ public class HibernateStorage implements Storage {
                             // Empty values from intermediate tables to this non instantiable type and unset inbound
                             // references
                             for (ReferenceFieldMetadata reference : references) {
-                                if (reference.isMany()) {
-                                    String formattedTableName = tableResolver.getCollectionTable(reference);
-                                    session.createSQLQuery("delete from " + formattedTableName).executeUpdate(); //$NON-NLS-1$
-                                } else {
-                                    String referenceTableName = tableResolver.get(reference.getContainingType());
-                                    List<String> fkColumnNames;
-                                    if (reference.getReferencedField() instanceof CompoundFieldMetadata) {
-                                        FieldMetadata[] fields = ((CompoundFieldMetadata) reference.getReferencedField())
-                                                .getFields();
-                                        fkColumnNames = new ArrayList<String>(fields.length);
-                                        for (FieldMetadata field : fields) {
-                                            fkColumnNames.add(tableResolver.get(field, reference.getName()));
-                                        }
+                                if (!reference.isMandatory()) {
+                                    if (reference.isMany()) {
+                                        String formattedTableName = tableResolver.getCollectionTable(reference);
+                                        session.createSQLQuery("delete from " + formattedTableName).executeUpdate(); //$NON-NLS-1$
                                     } else {
-                                        fkColumnNames = Collections.singletonList(tableResolver.get(
-                                                reference.getReferencedField(), reference.getName()));
-                                    }
-                                    for (String fkColumnName : fkColumnNames) {
-                                        session.createSQLQuery(
-                                                "update " + referenceTableName + " set " + fkColumnName + " = NULL").executeUpdate(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                                        String referenceTableName = tableResolver.get(reference.getContainingType());
+                                        List<String> fkColumnNames;
+                                        if (reference.getReferencedField() instanceof CompoundFieldMetadata) {
+                                            FieldMetadata[] fields = ((CompoundFieldMetadata) reference.getReferencedField())
+                                                    .getFields();
+                                            fkColumnNames = new ArrayList<String>(fields.length);
+                                            for (FieldMetadata field : fields) {
+                                                fkColumnNames.add(tableResolver.get(field, reference.getName()));
+                                            }
+                                        } else {
+                                            fkColumnNames = Collections.singletonList(tableResolver.get(
+                                                    reference.getReferencedField(), reference.getName()));
+                                        }
+                                        for (String fkColumnName : fkColumnNames) {
+                                            session.createSQLQuery(
+                                                    "update " + referenceTableName + " set " + fkColumnName + " = NULL").executeUpdate(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                                        }
                                     }
                                 }
                             }
@@ -1213,8 +1215,7 @@ public class HibernateStorage implements Storage {
                                 }
                             }
                             // Delete the type instances
-                            String className = storageClassLoader.getClassFromType(typeToDelete).getName();
-                            session.createQuery("delete from " + className).executeUpdate(); //$NON-NLS-1$
+                            session.createQuery("delete from " + tableResolver.get(typeToDelete)).executeUpdate(); //$NON-NLS-1$
                             // Clean up full text indexes
                             if (dataSource.supportFullText()) {
                                 FullTextSession fullTextSession = Search.getFullTextSession(session);
