@@ -46,7 +46,7 @@ public class ImplicitOrderBy implements Optimizer {
         case SQL_SERVER:
         case POSTGRES:
             // If query has paging, check if an implicit order by is needed and possible
-            if (select.getPaging().getStart() > 0 && !select.getTypes().isEmpty()) {
+            if (select.getPaging().getLimit() < Integer.MAX_VALUE && !select.getTypes().isEmpty()) {
                 Set<TypedExpression> missingOrderByExpressions = getMissingOrderByExpressions(select);
                 if (!missingOrderByExpressions.isEmpty()) {
                     if (LOGGER.isDebugEnabled()) {
