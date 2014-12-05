@@ -102,8 +102,19 @@ public class ForeignKeyHelper {
         if (results != null) {
             List<ForeignKeyBean> foreignKeyBeanList = convertForeignKeyBeanList(results, entityModel, model, dataClusterPK, 0,
                     language);
-            if (foreignKeyBeanList.size() > 0) {
-                foreignKeyBean = foreignKeyBeanList.get(0);
+            if (foreignKeyBeanList != null && foreignKeyBeanList.size() > 0) {
+                if(foreignKeyBeanList.size() > 1){
+                    for(ForeignKeyBean bean : foreignKeyBeanList){
+                        if(bean.getId() != null){
+                            if(unwrapKeyValueToString(bean.getId(), ".").equalsIgnoreCase(ids)){ //$NON-NLS-1$
+                                foreignKeyBean = bean;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    foreignKeyBean = foreignKeyBeanList.get(0);
+                }
             }
         }
         return foreignKeyBean;
@@ -581,6 +592,22 @@ public class ForeignKeyHelper {
             }
         }
         return value;
+    }
+    
+    public static String unwrapKeyValueToString(String value, String symbol) {
+        if (value.startsWith("[") && value.endsWith("]")) { //$NON-NLS-1$ //$NON-NLS-2$
+            StringBuffer sb = new StringBuffer();
+            if (value.contains("][")) { //$NON-NLS-1$
+                for(String s : value.split("]")){ //$NON-NLS-1$
+                    sb = sb.append(s.substring(1, s.length())+symbol);                    
+                }
+                return sb.substring(0, sb.length()-symbol.length());
+            } else {
+                return unwrapFkValue(value);
+            }
+        } else {
+            return value;
+        }
     }
 
     public static boolean isFkPath(String fkPath) {
