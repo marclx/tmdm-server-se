@@ -15,12 +15,15 @@ import com.amalto.core.query.analysis.ConditionChecks;
 import com.amalto.core.query.analysis.Result;
 import com.amalto.core.query.user.*;
 import com.amalto.core.query.user.metadata.*;
+import com.amalto.core.server.ServerContext;
 import com.amalto.core.storage.EmptyIterator;
 import com.amalto.core.storage.Storage;
 import com.amalto.core.storage.StorageResults;
 import com.amalto.core.storage.datasource.DataSource;
 import com.amalto.core.storage.datasource.RDBMSDataSource;
 import com.amalto.core.storage.inmemory.InMemoryJoinStrategy;
+import com.amalto.core.storage.transaction.Transaction;
+import com.amalto.core.storage.transaction.TransactionManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.hibernate.Session;
@@ -198,6 +201,13 @@ class SelectAnalyzer extends VisitorAdapter<Visitor<StorageResults>> {
                     containsManyField = true;
                 }
             }
+        }
+        // Last but not least, in clause optimization includes projections that don't get along with locking, check this
+        // before choosing this optimization (see https://hibernate.atlassian.net/browse/HHH-3313).
+        TransactionManager manager = ServerContext.INSTANCE.get().getTransactionManager();
+        Transaction.LockStrategy lockStrategy = manager.currentTransaction().getLockStrategy();
+        if (lockStrategy == Transaction.LockStrategy.LOCK_FOR_UPDATE) {
+            return false;
         }
         return allowInClauseOptimization || containsManyField || referenceFieldCount > 1;
     }

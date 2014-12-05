@@ -20,6 +20,22 @@ import com.amalto.core.storage.Storage;
  */
 public interface Transaction {
     /**
+     * Describes all locking strategies to be applied to records read/written withing this transaction boundaries.
+     */
+    public enum LockStrategy {
+        /**
+         * No lock: implementation of strategy is not required to perform any lock/synchronization (e.g. for concurrent
+         * updates).
+         */
+        NO_LOCK,
+        /**
+         * Records read within this transaction boundaries should be considered as locked for update. Implementation
+         * is responsible to decide best lock strategy.
+         */
+        LOCK_FOR_UPDATE
+    }
+
+    /**
      * Configures what is the transaction "life time": how long it should remain active in MDM server.
      */
     public enum Lifetime {
@@ -33,6 +49,26 @@ public interface Transaction {
          */
         LONG
     }
+
+    /**
+     * <p>
+     * Change the current {@link com.amalto.core.storage.transaction.Transaction.LockStrategy lock strategy} for this
+     * transaction. Implementations should support change for lock strategy over this transaction lifetime.
+     * </p>
+     * <p>
+     * Calling this method propagates the lock strategy to all contained
+     * {@link com.amalto.core.storage.transaction.StorageTransaction} instances.
+     * </p>
+     * 
+     * @param lockStrategy A {@link com.amalto.core.storage.transaction.Transaction.LockStrategy strategy}
+     * @see com.amalto.core.storage.transaction.StorageTransaction#setLockStrategy(com.amalto.core.storage.transaction.Transaction.LockStrategy)
+     */
+    void setLockStrategy(LockStrategy lockStrategy);
+
+    /**
+     * @return The current {@link com.amalto.core.storage.transaction.Transaction.LockStrategy} for this transaction.
+     */
+    LockStrategy getLockStrategy();
 
     /**
      * @return A unique identifier for this MDM transaction.
