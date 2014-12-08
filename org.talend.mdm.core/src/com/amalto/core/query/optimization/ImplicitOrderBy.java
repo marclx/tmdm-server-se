@@ -162,6 +162,66 @@ public class ImplicitOrderBy implements Optimizer {
         }
 
         @Override
+        public Boolean visit(StringConstant constant) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(IntegerConstant constant) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(DateConstant constant) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(DateTimeConstant constant) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(BooleanConstant constant) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(BigDecimalConstant constant) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(TimeConstant constant) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(ShortConstant constant) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(ByteConstant constant) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(LongConstant constant) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(DoubleConstant constant) {
+            return Boolean.TRUE;
+        }
+
+        @Override
+        public Boolean visit(FloatConstant constant) {
+            return Boolean.TRUE;
+        }
+
+        @Override
         public Boolean visit(Alias alias) {
             return alias.getTypedExpression().accept(this);
         }
