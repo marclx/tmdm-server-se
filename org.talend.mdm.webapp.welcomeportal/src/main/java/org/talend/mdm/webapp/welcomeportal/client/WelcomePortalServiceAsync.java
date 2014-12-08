@@ -68,13 +68,9 @@ public interface WelcomePortalServiceAsync {
 
     void savePortalConfig(PortalProperties config, AsyncCallback<Void> callback);
 
-    void savePortalConfig(List<String> configs, AsyncCallback<Void> callback);
-
     void savePortalConfig(String key, String value, AsyncCallback<Void> callback);
 
     void savePortalConfig(String key, String portletName, String value, AsyncCallback<Void> callback);
-
-    void savePortalConfigForClose(String portletName, AsyncCallback<Void> callback);
 
     void savePortalConfigAutoAndSetting(String portletName, List<String> coinfig, AsyncCallback<Void> callback);
 

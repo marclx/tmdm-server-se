@@ -27,15 +27,11 @@ public class PortalPropertiesTest extends TestCase {
 
     private static String PORTLET_TO_LOC_STRING = "{portlet1=[0, 0], portlet2=[1, 0], portlet3=[0, 1], portlet4=[1, 1], portlet5=[0, 2], portlet6=[1, 2], portlet7=[0, 3], portlet8=[1, 3], portlet9=[0, 4]}";
 
-    private String PORTLET_VISIBILITIES_STRING = "{portlet1=true, portlet2=false, portlet3=true, portlet4=false, portlet5=true, portlet6=false, portlet7=true, portlet8=false, portlet9=true}";
-
     private String CHART_SETTINGS_STRING = "{chart1=day, chart2=5, chart3=all, chart4=all}";
-
-    private String CHARTSON_STRING = "false";
 
     private String COLUMN_NUM_STRING = "3";
 
-    private String ALL_CHARTS_STRING = "[chart1, chart2, chart3, chart4]";
+    private String ALL_PORTLETS_STRING = "[chart1, chart2, chart3, chart4, chart5, chart6, chart7, chart8, chart9]";
 
     private String AUTO_ONOFFS_STRING = "{portlet1=true, portlet2=false, portlet3=true, portlet4=false, portlet5=true, portlet6=false, portlet7=true, portlet8=false, portlet9=true}";
 
@@ -51,19 +47,15 @@ public class PortalPropertiesTest extends TestCase {
 
         propsWithValues = new HashMap<String, String>();
         propsWithValues.put(PortalProperties.KEY_PORTLET_LOCATIONS, PORTLET_TO_LOC_STRING);
-        propsWithValues.put(PortalProperties.KEY_CHARTS_ON, CHARTSON_STRING);
         propsWithValues.put(PortalProperties.KEY_COLUMN_NUM, COLUMN_NUM_STRING);
-        propsWithValues.put(PortalProperties.KEY_PORTLET_VISIBILITIES, PORTLET_VISIBILITIES_STRING);
-        propsWithValues.put(PortalProperties.KEY_ALL_CHARTS, ALL_CHARTS_STRING);
+        propsWithValues.put(PortalProperties.KEY_ALL_PORTLETS, ALL_PORTLETS_STRING);
         propsWithValues.put(PortalProperties.KEY_AUTO_ONOFFS, AUTO_ONOFFS_STRING);
         propsWithValues.put(PortalProperties.KEY_CHART_SETTINGS, CHART_SETTINGS_STRING);
 
         propsWithNulls = new HashMap<String, String>();
         propsWithNulls.put(PortalProperties.KEY_PORTLET_LOCATIONS, null);
-        propsWithNulls.put(PortalProperties.KEY_CHARTS_ON, null);
         propsWithNulls.put(PortalProperties.KEY_COLUMN_NUM, null);
-        propsWithNulls.put(PortalProperties.KEY_PORTLET_VISIBILITIES, null);
-        propsWithNulls.put(PortalProperties.KEY_ALL_CHARTS, null);
+        propsWithNulls.put(PortalProperties.KEY_ALL_PORTLETS, null);
         propsWithNulls.put(PortalProperties.KEY_AUTO_ONOFFS, null);
         propsWithNulls.put(PortalProperties.KEY_CHART_SETTINGS, null);
     }
@@ -79,36 +71,14 @@ public class PortalPropertiesTest extends TestCase {
         assertNull(actual2);
     }
 
-    public void testGetPortletToVisibilities() {
+    public void testGetAllPortlets() {
         props = new PortalProperties(propsWithValues);
-        Map<String, Boolean> expected = getExpectedPortletVisibles();
-        Map<String, Boolean> actual1 = props.getPortletToVisibilities();
+        Set<String> expected = getExpectedAllPortlets(ALL_PORTLETS_STRING);
+        Set<String> actual1 = props.getAllPortlets();
         assertTrue(expected.equals(actual1));
 
         props = new PortalProperties(propsWithNulls);
-        Map<String, Boolean> actual2 = props.getPortletToVisibilities();
-        assertNull(actual2);
-    }
-
-    public void testGetAllCharts() {
-        props = new PortalProperties(propsWithValues);
-        Set<String> expected = getExpectedAllCharts(ALL_CHARTS_STRING);
-        Set<String> actual1 = props.getAllCharts();
-        assertTrue(expected.equals(actual1));
-
-        props = new PortalProperties(propsWithNulls);
-        Set<String> actual2 = props.getAllCharts();
-        assertNull(actual2);
-    }
-
-    public void testGetChartsOn() {
-        props = new PortalProperties(propsWithValues);
-        Boolean expected = Boolean.parseBoolean(CHARTSON_STRING);
-        Boolean actual1 = props.getChartsOn();
-        assertTrue(expected.equals(actual1));
-
-        props = new PortalProperties(propsWithNulls);
-        Boolean actual2 = props.getChartsOn();
+        Set<String> actual2 = props.getAllPortlets();
         assertNull(actual2);
     }
 
@@ -245,13 +215,18 @@ public class PortalPropertiesTest extends TestCase {
         return expects;
     }
 
-    private Set<String> getExpectedAllCharts(String allCharts) {
-        Set<String> allChartsNames = new HashSet<String>();
-        allChartsNames.add("chart1");
-        allChartsNames.add("chart2");
-        allChartsNames.add("chart3");
-        allChartsNames.add("chart4");
-        return allChartsNames;
+    private Set<String> getExpectedAllPortlets(String allPortlets) {
+        Set<String> allPortletNames = new HashSet<String>();
+        allPortletNames.add("chart1");
+        allPortletNames.add("chart2");
+        allPortletNames.add("chart3");
+        allPortletNames.add("chart4");
+        allPortletNames.add("chart5");
+        allPortletNames.add("chart6");
+        allPortletNames.add("chart7");
+        allPortletNames.add("chart8");
+        allPortletNames.add("chart9");
+        return allPortletNames;
     }
 
     private Map<String, String> getExpectedChartSettings() {

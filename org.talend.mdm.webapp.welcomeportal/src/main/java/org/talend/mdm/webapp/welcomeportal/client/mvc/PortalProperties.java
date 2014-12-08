@@ -25,21 +25,17 @@ import com.google.gwt.user.client.rpc.IsSerializable;
 
 public class PortalProperties implements IsSerializable {
 
-    public static final String KEY_PORTLET_VISIBILITIES = "mdm_pref_portletVisibilities"; //$NON-NLS-1$
-
     public static final String KEY_PORTLET_LOCATIONS = "mdm_pref_portletLocations"; //$NON-NLS-1$
 
     public static final String KEY_COLUMN_NUM = "mdm_pref_columnNum"; //$NON-NLS-1$
 
-    public static final String KEY_CHARTS_ON = "mdm_pref_chartsOn"; //$NON-NLS-1$
-
-    public static final String KEY_ALL_CHARTS = "mdm_pref_allCharts"; //$NON-NLS-1$
+    public static final String KEY_ALL_PORTLETS = "mdm_pref_allPortlets"; //$NON-NLS-1$
 
     public static final String KEY_AUTO_ONOFFS = "mdm_pref_autoOnOffs"; //$NON-NLS-1$
 
     public static final String KEY_CHART_SETTINGS = "mdm_pref_chartSettings"; //$NON-NLS-1$
 
-    private Map<String, String> configProperties = new HashMap<String, String>();
+    private Map<String, String> configProperties = new HashMap<String, String>(5);
 
     public PortalProperties() {
         super();
@@ -56,6 +52,20 @@ public class PortalProperties implements IsSerializable {
         for (String name : props.keySet()) {
             add(name, props.get(name));
         }
+    }
+
+    public static void populateConfigs(String dataString, List<String> allPortlets, List<String> portletsToCheck,
+            Boolean chartsOn, Integer colNum) {
+        String[] temp = dataString.split(";"); //$NON-NLS-1$
+
+        String all = temp[0].substring(1, temp[0].length() - 1);
+        allPortlets = Arrays.asList(all.split(", ")); //$NON-NLS-1$
+
+        String checks = temp[1].substring(1, temp[1].length() - 1);
+        chartsOn = chartsOn.valueOf("true");//(checks.contains("chart_")); //$NON-NLS-1$
+        portletsToCheck = Arrays.asList(checks.split(",")); //$NON-NLS-1$
+
+        colNum = Integer.parseInt(temp[2]);
     }
 
     public void add(String name, String value) {
@@ -93,21 +103,6 @@ public class PortalProperties implements IsSerializable {
         }
     }
 
-    public Map<String, Boolean> getPortletToVisibilities() {
-        String portletVisibilitiesStr = configProperties.get(KEY_PORTLET_VISIBILITIES);
-        return parseStringBooleanPair(portletVisibilitiesStr);
-
-    }
-
-    public Boolean getChartsOn() {
-        String chartsOnStr = configProperties.get(KEY_CHARTS_ON);
-        if (chartsOnStr == null || chartsOnStr.length() == 0) {
-            return null;
-        } else {
-            return Boolean.parseBoolean(chartsOnStr);
-        }
-    }
-
     public Integer getColumnNum() {
         String columnNumStr = configProperties.get(KEY_COLUMN_NUM);
         if (columnNumStr == null || columnNumStr.length() == 0) {
@@ -117,10 +112,10 @@ public class PortalProperties implements IsSerializable {
         }
     }
 
-    public Set<String> getAllCharts() {
-        String allChartsStr = configProperties.get(KEY_ALL_CHARTS);
-        if (allChartsStr != null) {
-            String chartNames = allChartsStr.substring(1, allChartsStr.length() - 1);
+    public Set<String> getAllPortlets() {
+        String allPortletsStr = configProperties.get(KEY_ALL_PORTLETS);
+        if (allPortletsStr != null) {
+            String chartNames = allPortletsStr.substring(1, allPortletsStr.length() - 1);
             return new HashSet<String>(Arrays.asList(chartNames.split(", "))); //$NON-NLS-1$
         } else {
             return null;
@@ -235,8 +230,8 @@ public class PortalProperties implements IsSerializable {
             configs = configProperties.get(KEY_AUTO_ONOFFS);
         } else if (key.equals(KEY_CHART_SETTINGS)) {
             configs = configProperties.get(KEY_CHART_SETTINGS);
-        } else if (key.equals(KEY_PORTLET_VISIBILITIES)) {
-            configs = configProperties.get(KEY_PORTLET_VISIBILITIES);
+        } else {
+            assert (false);
         }
         configs = updateConfigs(configs, portletName, value);
         configProperties.put(key, configs);
