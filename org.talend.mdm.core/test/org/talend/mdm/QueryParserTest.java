@@ -246,4 +246,23 @@ public class QueryParserTest extends TestCase {
         assertEquals(At.Swing.BEFORE, condition.getSwing());
         assertEquals(1000, condition.getDateTime());
     }
+
+    public void testQuery16() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query16.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        assertEquals(2, select.getOrderBy().size());
+        OrderBy orderBy = select.getOrderBy().get(0);
+        assertTrue(orderBy.getField() instanceof Field);
+        assertEquals("id", ((Field) orderBy.getField()).getFieldMetadata().getPath());
+        assertEquals("Type1", ((Field) orderBy.getField()).getFieldMetadata().getEntityTypeName());
+        assertEquals(OrderBy.Direction.DESC, orderBy.getDirection());
+        orderBy = select.getOrderBy().get(1);
+        assertTrue(orderBy.getField() instanceof Field);
+        assertEquals("value1", ((Field) orderBy.getField()).getFieldMetadata().getPath());
+        assertEquals("Type1", ((Field) orderBy.getField()).getFieldMetadata().getEntityTypeName());
+        assertEquals(OrderBy.Direction.ASC, orderBy.getDirection());
+    }
+
 }

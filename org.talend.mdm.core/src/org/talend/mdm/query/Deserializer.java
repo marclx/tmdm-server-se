@@ -156,6 +156,36 @@ class Deserializer implements JsonDeserializer<Expression> {
                     }
                 }
             }
+            // Process order by (optional)
+            if (select.has("order_bys")) { //$NON-NLS-1$
+                JsonArray orderBys = select.get("order_bys").getAsJsonArray(); //$NON-NLS-1$
+                for (int i = 0; i < orderBys.size(); i++) {
+                    TypedExpression orderByExpression = null;
+                    OrderBy.Direction direction = null;
+                    JsonElement orderBy = orderBys.get(i).getAsJsonObject().get("order_by"); //$NON-NLS-1
+                    JsonArray array = orderBy.getAsJsonArray();
+                    for (int j = 0; j < array.size(); j++) {
+                        JsonObject orderByElement = array.get(j).getAsJsonObject();
+                        boolean isDirection = orderByElement.get("direction") != null; //$NON-NLS-1
+                        if (!isDirection) {
+                            orderByExpression = getTypedExpression(orderByElement).process(orderByElement, repository);
+                        } else {
+                            String directionAsString = orderByElement.get("direction").getAsString(); //$NON-NLS-1
+                            if ("DESC".equalsIgnoreCase(directionAsString)) { //$NON-NLS-1
+                                direction = OrderBy.Direction.DESC;
+                            } else if ("ASC".equalsIgnoreCase(directionAsString)) { //$NON-NLS-1
+                                direction = OrderBy.Direction.ASC;
+                            } else {
+                                throw new IllegalArgumentException("Direction '" + directionAsString + "' is not a valid direction for order by.");
+                            }
+                        }
+                    }
+                    if (orderByExpression == null || direction == null) {
+                        throw new IllegalStateException("Missing expression and/or direction for order by.");
+                    }
+                    queryBuilder.orderBy(orderByExpression, direction);
+                }
+            }
         } else {
             throw new IllegalArgumentException("Malformed query (expected a top level object).");
         }
