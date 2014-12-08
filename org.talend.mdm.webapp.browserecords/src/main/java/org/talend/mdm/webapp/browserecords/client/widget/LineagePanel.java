@@ -59,14 +59,16 @@ public class LineagePanel extends ContentPanel {
     }
 
     public void init(String concept, String taskId) {
-        LineageTabPanel.getInstance().getLineageListPanel().initPanel(taskId);
-        LineageTabPanel.getInstance().getLineageListPanel().layout();
+        final LineageTabPanel lineageTabPanel = LineageTabPanel.getInstance();
+        lineageTabPanel.init();
+        lineageTabPanel.getLineageListPanel().initPanel(taskId);
+        lineageTabPanel.getLineageListPanel().layout();
         ExplainRestServiceHandler.get().explainGroupResult(BrowseRecords.getSession().getAppHeader().getMasterDataCluster(),
                 concept, taskId, new SessionAwareAsyncCallback<BaseTreeModel>() {
 
                     @Override
                     public void onSuccess(BaseTreeModel rootNode) {
-                        LineageTabPanel.getInstance().getExplainTablePanel().buildTree(rootNode);
+                        lineageTabPanel.getExplainTablePanel().buildTree(rootNode);
                     }
                 });
     }
