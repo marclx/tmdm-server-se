@@ -579,6 +579,10 @@ public class ItemDetailToolBar extends ToolBar {
                 if (duplicateMenuItem == null) {
                     duplicateMenuItem = new MenuItem(MessagesFactory.getMessages().duplicate_btn());
                     duplicateMenuItem.setId("duplicateMenuItem"); //$NON-NLS-1$
+                    String concept = ViewUtil.getConceptFromBrowseItemView(itemBean.getConcept());
+                    if (viewBean.getBindingEntityModel().getMetaDataTypes().get(concept).isDenyCreatable()) {
+                        duplicateMenuItem.setEnabled(false);
+                    }
                     duplicateMenuItem.setIcon(AbstractImagePrototype.create(Icons.INSTANCE.duplicate()));
                     duplicateMenuItem.setToolTip(MessagesFactory.getMessages().duplicate_tip());
                     duplicateMenuItem.addSelectionListener(new SelectionListener<MenuEvent>() {
