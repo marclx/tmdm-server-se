@@ -73,7 +73,7 @@ public class ForeignKeyHelper {
         ForeignKeyBean foreignKeyBean = null;
         boolean hasForeignKeyFilter = model.getFkFilter() != null && model.getFkFilter().trim().length() > 0 ? true : false;
         ForeignKeyHolder holder = getForeignKeyHolder(xml,
-                currentXpath.split("/")[0], currentXpath, model, hasForeignKeyFilter, ids); //$NON-NLS-1$
+                currentXpath.split("/")[0], currentXpath, model, hasForeignKeyFilter, ids, false); //$NON-NLS-1$
         String[] results = null;
         if (holder != null) {
             String conceptName = holder.conceptName;
@@ -124,7 +124,7 @@ public class ForeignKeyHelper {
             EntityModel entityModel, String dataClusterPK, boolean ifFKFilter, String value) throws Exception {
 
         ForeignKeyHolder holder = getForeignKeyHolder((String) config.get("xml"), (String) config.get("dataObject"), //$NON-NLS-1$ //$NON-NLS-2$
-                (String) config.get("currentXpath"), model, ifFKFilter, value); //$NON-NLS-1$
+                (String) config.get("currentXpath"), model, ifFKFilter, value, true); //$NON-NLS-1$
         String[] results = null;
         if (holder != null) {
             String conceptName = holder.conceptName;
@@ -266,7 +266,7 @@ public class ForeignKeyHelper {
     }
 
     protected static ForeignKeyHolder getForeignKeyHolder(String xml, String dataObject, String currentXpath, TypeModel model,
-            boolean ifFKFilter, String value) throws Exception {
+            boolean ifFKFilter, String value, boolean isFuzzy) throws Exception {
 
         String xpathForeignKey = model.getForeignkey();
         if (xpathForeignKey == null) {
@@ -326,50 +326,7 @@ public class ForeignKeyHelper {
 
             // build query - add a content condition on the pivot if we search for a particular value
             if (value != null && !"".equals(value.trim()) && !".*".equals(value.trim()) && !"'*'".equals(value.trim())) { //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-                List<WSWhereItem> condition = new ArrayList<WSWhereItem>();
-                if (whereItem != null) {
-                    condition.add(whereItem);
-                }
-
-                String fkWhere = initxpathForeignKey + "/../* CONTAINS " + value; //$NON-NLS-1$
-                if (xpathInfoForeignKey.trim().length() > 0) {
-                    StringBuffer ids = new StringBuffer();
-                    String realXpathForeignKey = null; // In studio, ForeignKey = ConceptName, but not ConceptName/Id
-                    if (xpathForeignKey.indexOf("/") == -1) { //$NON-NLS-1$
-                        String[] fks = Util.getBusinessConceptKeys(conceptName);
-                        if (fks != null && fks.length > 0) {
-                            realXpathForeignKey = fks[0];
-                            for (int i = 0; i < fks.length; i++) {
-                                ids.append(fks[i] + " CONTAINS " + value); //$NON-NLS-1$
-                                if (i != fks.length - 1) {
-                                    ids.append(" OR "); //$NON-NLS-1$
-                                }
-                            }
-                        }
-                    }
-                    StringBuffer sb = new StringBuffer();
-                    for (String fkInfo : xpathInfos) {
-                        sb.append((fkInfo.startsWith(".") ? XpathUtil.convertAbsolutePath( //$NON-NLS-1$
-                                (realXpathForeignKey != null && realXpathForeignKey.trim().length() > 0) ? realXpathForeignKey
-                                        : xpathForeignKey, fkInfo) : fkInfo)
-                                + " CONTAINS " + value); //$NON-NLS-1$
-                        sb.append(" OR "); //$NON-NLS-1$
-                    }
-                    if (realXpathForeignKey != null) {
-                        sb.append(ids.toString());
-                    } else {
-                        sb.append(xpathForeignKey + " CONTAINS " + value); //$NON-NLS-1$
-                    }
-                    fkWhere = sb.toString();
-                }
-
-                WSWhereItem wc = Util.buildWhereItems(fkWhere);
-                condition.add(wc);
-                WSWhereAnd and = new WSWhereAnd(condition.toArray(new WSWhereItem[condition.size()]));
-                WSWhereItem whand = new WSWhereItem(null, and, null);
-                if (whand != null) {
-                    whereItem = whand;
-                }
+                whereItem = getFKQueryCondition(whereCondition, xpathForeignKey, xpathInfoForeignKey, value, isFuzzy);
             }
 
             // add the xPath Infos Path
@@ -402,6 +359,100 @@ public class ForeignKeyHelper {
         return null;
     }
 
+    protected static WSWhereItem getFKQueryCondition(WSWhereCondition whereCondition, String xpathForeignKey, String xpathInfoForeignKey, String keyValue ,boolean isFuzzy) throws Exception{
+        String initxpathForeignKey = Util.getForeignPathFromPath(xpathForeignKey);
+        initxpathForeignKey = initxpathForeignKey.split("/")[0]; //$NON-NLS-1$
+        String[] xpathInfos = new String[1];
+        
+        if (xpathInfoForeignKey.trim().length() != 0) {
+            xpathInfos = xpathInfoForeignKey.split(","); //$NON-NLS-1$
+        } else {
+            xpathInfos[0] = initxpathForeignKey;
+        }
+        
+        WSWhereItem whereItem = null;
+        if (whereCondition != null) {
+            whereItem = new WSWhereItem(whereCondition, null, null);
+        }
+        List<WSWhereItem> condition = new ArrayList<WSWhereItem>();
+        if (whereItem != null) {
+            condition.add(whereItem);
+        }
+
+        String fkWhere;
+        if(isFuzzy){
+            fkWhere = initxpathForeignKey + "/../* CONTAINS " + keyValue; //$NON-NLS-1$
+            if (xpathInfoForeignKey.trim().length() > 0) {
+                StringBuffer ids = new StringBuffer();
+                String realXpathForeignKey = null; // In studio, ForeignKey = ConceptName, but not ConceptName/Id
+                if (xpathForeignKey.indexOf("/") == -1) { //$NON-NLS-1$
+                    String[] fks = Util.getBusinessConceptKeys(initxpathForeignKey);
+                    if (fks != null && fks.length > 0) {
+                        realXpathForeignKey = fks[0];
+                        for (int i = 0; i < fks.length; i++) {
+                            ids.append(fks[i] + " CONTAINS " + keyValue); //$NON-NLS-1$
+                            if (i != fks.length - 1) {
+                                ids.append(" OR "); //$NON-NLS-1$
+                            }
+                        }
+                    }
+                }
+                StringBuffer sb = new StringBuffer();
+                for (String fkInfo : xpathInfos) {
+                    sb.append((fkInfo.startsWith(".") ? XpathUtil.convertAbsolutePath( //$NON-NLS-1$
+                            (realXpathForeignKey != null && realXpathForeignKey.trim().length() > 0) ? realXpathForeignKey
+                                    : xpathForeignKey, fkInfo) : fkInfo)
+                            + " CONTAINS " + keyValue); //$NON-NLS-1$
+                    sb.append(" OR "); //$NON-NLS-1$
+                }
+                if (realXpathForeignKey != null) {
+                    sb.append(ids.toString());
+                } else {
+                    sb.append(xpathForeignKey + " CONTAINS " + keyValue); //$NON-NLS-1$
+                }
+                fkWhere = sb.toString();
+            }
+        } else {
+            fkWhere = initxpathForeignKey + "/../* EQUALS " + keyValue; //$NON-NLS-1$
+            if (xpathInfoForeignKey.trim().length() > 0) {
+                StringBuffer ids = new StringBuffer();
+                String realXpathForeignKey = null; // In studio, ForeignKey = ConceptName, but not ConceptName/Id
+                if (xpathForeignKey.indexOf("/") == -1) { //$NON-NLS-1$
+                    String[] fks = Util.getBusinessConceptKeys(initxpathForeignKey);
+                    if (fks != null && fks.length > 0) {
+                        realXpathForeignKey = fks[0];
+                        if(keyValue.contains(".")){ //$NON-NLS-1$
+                            String[] subValues = keyValue.split("\\."); //$NON-NLS-1$
+                            if(fks.length == subValues.length){
+                                for (int i = 0; i < fks.length; i++) {
+                                    ids.append(fks[i] + " EQUALS " + subValues[i]); //$NON-NLS-1$ 
+                                    if (i != fks.length - 1) {
+                                        ids.append(" AND "); //$NON-NLS-1$
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                StringBuffer sb = new StringBuffer();
+                if (realXpathForeignKey != null) {
+                    sb.append(ids.toString());
+                } else {
+                    sb.append(xpathForeignKey + " EQUALS " + keyValue); //$NON-NLS-1$
+                }
+                fkWhere = sb.toString();
+            }
+        }
+        WSWhereItem wc = Util.buildWhereItems(fkWhere);
+        condition.add(wc);
+        WSWhereAnd and = new WSWhereAnd(condition.toArray(new WSWhereItem[condition.size()]));
+        WSWhereItem whand = new WSWhereItem(null, and, null);
+        if (whand != null) {
+            whereItem = whand;
+        }
+        return whereItem;
+    }
+    
     protected static void initFKBean(String dataClusterPK, EntityModel entityModel, Element ele, ForeignKeyBean bean, String fk,
             List<String> getForeignKeyInfos, Map<String, String> xpathTypeMap, String language) throws Exception {
         int positionIndex = 0;
