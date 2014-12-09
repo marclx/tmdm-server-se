@@ -59,6 +59,19 @@ class Security implements DocumentSaver {
                     break;
                 }
             }
+            
+            // if has rights for 'write', then further check for 'create'
+            UserAction userAction = context.getUserAction();
+            if (isAllowed && userAction == UserAction.CREATE) {
+                List<String> typeNoCreateUsers = type.getDenyCreate();
+                for (String currentUserRole : currentUserRoles) {
+                    if (typeNoCreateUsers.contains(currentUserRole)) {
+                        isAllowed = false;
+                        break;
+                    }
+                }
+            }
+            
             if (!isAllowed) {
                 throw new RuntimeException("User '" + saverSource.getUserName() + "' is not allowed to write to type '" + type.getName() + "'.");
             }
