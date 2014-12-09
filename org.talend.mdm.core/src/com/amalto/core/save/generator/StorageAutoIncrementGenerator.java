@@ -1,4 +1,4 @@
-package com.amalto.core.load.context;
+package com.amalto.core.save.generator;
 
 import com.amalto.core.query.user.UserQueryBuilder;
 import com.amalto.core.server.Server;
@@ -24,7 +24,7 @@ import static com.amalto.core.query.user.UserQueryBuilder.eq;
 import static com.amalto.core.query.user.UserQueryBuilder.from;
 
 /**
- * This {@link com.amalto.core.load.context.AutoIdGenerator generator} is a more secure way to generate auto increment
+ * This {@link com.amalto.core.save.generator.AutoIdGenerator generator} is a more secure way to generate auto increment
  * values in case of concurrent access to the same underlying database.
  */
 public class StorageAutoIncrementGenerator implements AutoIdGenerator {
@@ -34,16 +34,16 @@ public class StorageAutoIncrementGenerator implements AutoIdGenerator {
     private final Storage system;
 
     /**
-     * Build a {@link com.amalto.core.load.context.AutoIdGenerator} using current available system storage (from current
+     * Build a {@link com.amalto.core.save.generator.AutoIdGenerator} using current available system storage (from current
      * context).
      */
-    public StorageAutoIncrementGenerator() {
+    StorageAutoIncrementGenerator() {
         this(ServerContext.INSTANCE.get().getStorageAdmin().get(StorageAdmin.SYSTEM_STORAGE, StorageType.SYSTEM, null));
     }
 
     /**
-     * Build a {@link com.amalto.core.load.context.AutoIdGenerator} using current available system storage (from current
-     * context).
+     * Build a {@link com.amalto.core.save.generator.AutoIdGenerator} using provided system
+     * {@link com.amalto.core.storage.Storage storage}.
      * 
      * @param storage The {@link com.amalto.core.storage.Storage system} storage to use. This storage must be of
      * {@link com.amalto.core.storage.StorageType#SYSTEM} type.
@@ -153,5 +153,10 @@ public class StorageAutoIncrementGenerator implements AutoIdGenerator {
     @Override
     public void saveState(XmlServer server) {
         // No need to do anything (implementation saves new values when generated).
+    }
+
+    @Override
+    public void init() {
+        // Nothing to do.
     }
 }

@@ -9,7 +9,7 @@
  * 9 rue Pages 92150 Suresnes, France
  */
 
-package com.amalto.core.load.context;
+package com.amalto.core.save.generator;
 
 import com.amalto.core.server.XmlServer;
 
@@ -37,4 +37,10 @@ public interface AutoIdGenerator {
      * Tells the auto id generator to save its state (usually the last id that has been generated).
      */
     void saveState(XmlServer server);
+
+    /**
+     * Performs all implementation needed operation to serve correct results in {@link #generateId(String, String, String)}.
+     * @see #generateId(String, String, String)
+     */
+    void init();
 }

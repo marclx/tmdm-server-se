@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
-import com.amalto.core.load.context.UUIDIdGenerator;
+import com.amalto.core.save.generator.UUIDIdGenerator;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 
@@ -31,7 +31,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
-import com.amalto.core.load.context.AutoIdGenerator;
+import com.amalto.core.save.generator.AutoIdGenerator;
 import com.amalto.core.load.context.StateContext;
 import com.amalto.core.load.exception.ParserCallbackException;
 import com.amalto.core.load.io.XMLRootInputStream;
@@ -919,6 +919,10 @@ public class LoadParserTest extends TestCase {
 
         public void saveState(XmlServer server) {
             savedState = true;
+        }
+
+        @Override
+        public void init() {
         }
 
         public boolean isStateSaved() {

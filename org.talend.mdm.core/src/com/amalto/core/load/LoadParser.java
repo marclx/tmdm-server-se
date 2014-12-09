@@ -12,6 +12,7 @@
 package com.amalto.core.load;
 
 import com.amalto.core.load.context.*;
+import com.amalto.core.save.generator.AutoIdGenerator;
 import org.apache.log4j.Logger;
 
 import javax.xml.stream.XMLInputFactory;

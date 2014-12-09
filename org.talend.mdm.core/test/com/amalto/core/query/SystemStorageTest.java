@@ -25,7 +25,7 @@ import java.util.*;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import com.amalto.core.load.context.StorageAutoIncrementGenerator;
+import com.amalto.core.save.generator.StorageAutoIncrementGenerator;
 import com.amalto.core.storage.*;
 import junit.framework.TestCase;
 

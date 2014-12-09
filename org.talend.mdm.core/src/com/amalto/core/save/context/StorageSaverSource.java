@@ -13,6 +13,7 @@ package com.amalto.core.save.context;
 
 import com.amalto.core.ejb.ItemPOJOPK;
 import com.amalto.core.history.MutableDocument;
+import com.amalto.core.save.generator.AutoIncrementGenerator;
 import org.talend.mdm.commmon.metadata.MetadataUtils;
 import com.amalto.core.objects.datacluster.ejb.DataClusterPOJOPK;
 import com.amalto.core.objects.datamodel.ejb.DataModelPOJOPK;
@@ -191,7 +192,7 @@ public class StorageSaverSource implements SaverSource {
     }
 
     public void initAutoIncrement() {
-        AutoIncrementGenerator.init();
+        AutoIncrementGenerator.get().init();
     }
 
     public void routeItem(String dataCluster, String typeName, String[] id) {
@@ -215,11 +216,15 @@ public class StorageSaverSource implements SaverSource {
     }
 
     public void saveAutoIncrement() {
-        AutoIncrementGenerator.saveToDB();
+        try {
+            AutoIncrementGenerator.get().saveState(Util.getXmlServerCtrlLocal());
+        } catch (XtentisException e) {
+            throw new RuntimeException("Unable to save auto increment.", e);
+        }
     }
 
     public String nextAutoIncrementId(String universe, String dataCluster, String dataModelName, String conceptName) {
-        long autoIncrementId = -1;        
+        String autoIncrementId = null;
         String field = null;
         String concept;
         if (conceptName.contains(".")) { //$NON-NLS-1$
@@ -238,10 +243,10 @@ public class StorageSaverSource implements SaverSource {
                     concept = superType.getName();
                 }                
                 String autoIncrementFiledName = field != null ? concept + "." + field : concept; //$NON-NLS-1$
-                autoIncrementId = AutoIncrementGenerator.generateNum(universe, dataCluster, autoIncrementFiledName);
+                autoIncrementId = AutoIncrementGenerator.get().generateId(dataCluster, conceptName, autoIncrementFiledName);
             } 
         }
-        return String.valueOf(autoIncrementId);
+        return autoIncrementId;
     }
 
     public String getLegitimateUser() {

@@ -18,6 +18,7 @@ import com.amalto.core.load.exception.ParserCallbackException;
 import com.amalto.core.load.payload.EndPayload;
 import com.amalto.core.load.payload.StartPayload;
 import com.amalto.core.load.xml.Selector;
+import com.amalto.core.save.generator.AutoIdGenerator;
 import com.amalto.core.server.XmlServer;
 
 import javax.xml.stream.XMLStreamException;
@@ -55,7 +56,7 @@ public class AutoGenStateContext implements StateContext {
      * @param context         A context implementation. The <code>context</code> may not support auto generated PK.
      *                        But if it already does, this does not throw any exception.
      * @param idPaths         The paths to the elements that contains the generated ids.
-     * @param autoIdGenerator Implementation of {@link com.amalto.core.load.context.AutoIdGenerator} able to generate id in this context.  @return A context that generate metadata automatically.
+     * @param autoIdGenerator Implementation of {@link com.amalto.core.save.generator.AutoIdGenerator} able to generate id in this context.  @return A context that generate metadata automatically.
      * @return A {@link StateContext} implementation able to generate automatic ids.
      */
     public static StateContext decorate(StateContext context, String[] idPaths, AutoIdGenerator autoIdGenerator) {

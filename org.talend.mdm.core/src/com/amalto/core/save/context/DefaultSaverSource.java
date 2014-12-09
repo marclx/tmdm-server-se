@@ -13,6 +13,7 @@ package com.amalto.core.save.context;
 
 import com.amalto.core.ejb.ItemPOJOPK;
 import com.amalto.core.history.MutableDocument;
+import com.amalto.core.save.generator.AutoIncrementGenerator;
 import org.talend.mdm.commmon.metadata.MetadataUtils;
 import com.amalto.core.save.DOMDocument;
 import com.amalto.core.schema.validation.SkipAttributeDocumentBuilder;
@@ -228,7 +229,7 @@ public class DefaultSaverSource implements SaverSource {
     }
 
     public void initAutoIncrement() {
-        AutoIncrementGenerator.init();
+        AutoIncrementGenerator.get().init();
     }
 
     public void routeItem(String dataCluster, String typeName, String[] id) {
@@ -252,11 +253,15 @@ public class DefaultSaverSource implements SaverSource {
     }
 
     public void saveAutoIncrement() {
-        AutoIncrementGenerator.saveToDB();
+        try {
+            AutoIncrementGenerator.get().saveState(Util.getXmlServerCtrlLocal());
+        } catch (XtentisException e) {
+            throw new RuntimeException("Unable to save auto increment value.", e);
+        }
     }
 
     public String nextAutoIncrementId(String universe, String dataCluster, String dataModelName, String conceptName) {
-        long autoIncrementId = -1;        
+        String autoIncrementId = null;
         String concept;
         String field;
         if (conceptName.contains(".")) { //$NON-NLS-1$
@@ -276,10 +281,10 @@ public class DefaultSaverSource implements SaverSource {
                     concept = superType.getName();
                 }
                 String autoIncrementFieldName = field != null ? concept + "." + field : concept; //$NON-NLS-1$
-                autoIncrementId = AutoIncrementGenerator.generateNum(universe, dataCluster, autoIncrementFieldName);
+                autoIncrementId = AutoIncrementGenerator.get().generateId(dataCluster, conceptName, autoIncrementFieldName);
             } 
         }
-        return String.valueOf(autoIncrementId);
+        return autoIncrementId;
     }
 
     public String getLegitimateUser() {

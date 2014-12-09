@@ -12,10 +12,10 @@
 package com.amalto.core.load.action;
 
 import com.amalto.core.load.LoadParser;
-import com.amalto.core.load.context.AutoIdGenerator;
-import com.amalto.core.load.context.AutoIncrementIdGenerator;
+import com.amalto.core.save.generator.AutoIdGenerator;
 import com.amalto.core.load.context.StateContext;
-import com.amalto.core.load.context.UUIDIdGenerator;
+import com.amalto.core.save.generator.AutoIncrementGenerator;
+import com.amalto.core.save.generator.UUIDIdGenerator;
 import com.amalto.core.load.io.XMLRootInputStream;
 import com.amalto.core.save.SaverSession;
 import com.amalto.core.server.XmlServer;
@@ -56,7 +56,7 @@ public class OptimizedLoadAction implements LoadAction {
             String[] idFieldTypes = keyMetadata.getFieldTypes();
             for (String idFieldType : idFieldTypes) {
                 if (EUUIDCustomType.AUTO_INCREMENT.getName().equals(idFieldType)) {
-                    idGenerator = new AutoIncrementIdGenerator();
+                    idGenerator = AutoIncrementGenerator.get();
                 } else if (EUUIDCustomType.UUID.getName().equals(idFieldType)) {
                     idGenerator = new UUIDIdGenerator();
                 } else {
