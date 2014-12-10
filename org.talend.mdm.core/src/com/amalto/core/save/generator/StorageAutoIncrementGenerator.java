@@ -49,6 +49,9 @@ public class StorageAutoIncrementGenerator implements AutoIdGenerator {
      * {@link com.amalto.core.storage.StorageType#SYSTEM} type.
      */
     public StorageAutoIncrementGenerator(Storage storage) {
+        if (storage == null) {
+            throw new IllegalArgumentException("System storage cannot be null.");
+        }
         if (storage.getType() != StorageType.SYSTEM) {
             throw new IllegalArgumentException("Storage should be of " + StorageType.SYSTEM + " (was " + storage.getType() + ").");
         }
@@ -114,7 +117,7 @@ public class StorageAutoIncrementGenerator implements AutoIdGenerator {
                 }
             }
             // Update it
-            String key = "[HEAD]." + dataClusterName + '.' + conceptName + '.' + keyElementName; //$NON-NLS-1
+            String key = dataClusterName + '.' + conceptName + '.' + keyElementName;
             List<DataRecord> entries = (List<DataRecord>) autoIncrementRecord.get(entryField);
             Integer value = null;
             if (entries != null) {

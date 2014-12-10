@@ -29,7 +29,7 @@ class InMemoryAutoIncrementGenerator implements AutoIdGenerator {
     // This method is not secure in clustered environments (when several MDM nodes share same database).
     // See com.amalto.core.save.generator.StorageAutoIncrementGenerator for better concurrency support.
     @Override
-    public String generateId(String dataClusterName, String conceptName, String keyElementName) {
+    public synchronized String generateId(String dataClusterName, String conceptName, String keyElementName) {
         if (!wasInitCalled) {
             init();
         }
@@ -47,12 +47,16 @@ class InMemoryAutoIncrementGenerator implements AutoIdGenerator {
     }
 
     @Override
-    public void saveState(XmlServer server) {
+    public synchronized void saveState(XmlServer server) {
         try {
-            server.start(XSystemObjects.DC_CONF.getName());
             String xmlString = Util.convertAutoIncrement(CONFIGURATION);
-            server.putDocumentFromString(xmlString, CONCEPT, DC.getUniqueId(), null);
-            server.commit(XSystemObjects.DC_CONF.getName());
+            ItemPOJO pojo = new ItemPOJO(DC, // cluster
+                    CONCEPT, // concept name
+                    IDS, System.currentTimeMillis(), // insertion time
+                    xmlString // actual data
+            );
+            pojo.setDataModelName(XSystemObjects.DM_CONF.getName());
+            pojo.store(null);
         } catch (Exception e) {
             logger.error(e.getLocalizedMessage(), e);
         }
