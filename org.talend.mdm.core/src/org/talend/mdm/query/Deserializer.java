@@ -33,13 +33,15 @@ class Deserializer implements JsonDeserializer<Expression> {
             return MaxProcessor.INSTANCE;
         } else if (object.has("min")) { //$NON-NLS-1$
             return MinProcessor.INSTANCE;
-        } else if (object.has("index")) {
+        } else if (object.has("index")) { //$NON-NLS-1
             return IndexProcessor.INSTANCE;
-        } else if (object.has("metadata")) {
+        } else if (object.has("metadata")) { //$NON-NLS-1
             return MetadataFieldProcessor.INSTANCE;
-        } else if (object.has("distinct")) {
+        } else if (object.has("distinct")) { //$NON-NLS-1
             return DistinctProcessor.INSTANCE;
-        } else {
+        } else if (object.has("count")) { //$NON-NLS-1
+            return CountProcessor.INSTANCE;
+        }else {
             throw new NotImplementedException("No support for '" + object + "'.");
         }
     }

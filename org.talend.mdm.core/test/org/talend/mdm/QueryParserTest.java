@@ -416,4 +416,14 @@ public class QueryParserTest extends TestCase {
         assertEquals(Distinct.class, aliasedExpression.getClass());
         assertEquals(TaskId.class, ((Distinct) aliasedExpression).getExpression().getClass());
     }
+
+    public void testQuery25() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query25.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        assertEquals(1, select.getOrderBy().size());
+        OrderBy orderBy = select.getOrderBy().get(0);
+    }
+
 }
