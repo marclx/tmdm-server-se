@@ -265,4 +265,25 @@ public class QueryParserTest extends TestCase {
         assertEquals(OrderBy.Direction.ASC, orderBy.getDirection());
     }
 
+    public void testQuery17() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query17.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        Condition condition = select.getCondition();
+        assertNotNull(condition);
+        assertEquals(FieldFullText.class, condition.getClass());
+        assertEquals("1", ((FieldFullText) condition).getValue());
+    }
+
+    public void testQuery18() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query18.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        Condition condition = select.getCondition();
+        assertNotNull(condition);
+        assertEquals(FullText.class, condition.getClass());
+        assertEquals("1", ((FullText) condition).getValue());
+    }
 }
