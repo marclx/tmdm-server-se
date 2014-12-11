@@ -38,6 +38,7 @@ import com.extjs.gxt.ui.client.widget.layout.RowData;
 import com.extjs.gxt.ui.client.widget.layout.RowLayout;
 import com.extjs.gxt.ui.client.widget.layout.TableData;
 import com.extjs.gxt.ui.client.widget.layout.TableLayout;
+import com.google.gwt.i18n.client.NumberFormat;
 import com.google.gwt.user.client.ui.Label;
 
 public class SearchView extends AbstractView {
@@ -66,7 +67,7 @@ public class SearchView extends AbstractView {
 
     private ComboBox<BaseModel> stateCombo;
 
-    private TextField<String> statusCodeField;
+    private NumberField statusCodeField;
 
     private FieldSet fieldSet;
 
@@ -130,7 +131,11 @@ public class SearchView extends AbstractView {
         stateCombo.setDisplayField("name"); //$NON-NLS-1$
         stateCombo.setValueField("value"); //$NON-NLS-1$
         stateCombo.setWidth(250);
-        statusCodeField = new TextField<String>();
+        statusCodeField = new NumberField();
+        statusCodeField.setPropertyEditorType(Integer.class);
+        statusCodeField.setFormat(NumberFormat.getFormat("000")); //$NON-NLS-1$
+        statusCodeField.setRegex("[024]0[0-8]"); //$NON-NLS-1$
+        statusCodeField.setValue(000);
         statusCodeField.setFieldLabel(messages.status_code());
         statusCodeField.setWidth(250);
 
@@ -239,7 +244,7 @@ public class SearchView extends AbstractView {
                 if (stateCombo.getValue() != null) {
                     searchModel.setState((Integer) stateCombo.getValue().get("value")); //$NON-NLS-1$
                 }
-                searchModel.setStatusCode(statusCodeField.getValue());
+                searchModel.setStatusCode("" + statusCodeField.getValue()); //$NON-NLS-1$
                 searchModel.setStartDate(startDate.getValue());
                 searchModel.setEndDate(endDate.getValue());
                 ControllerContainer.get().getResultsController().searchResult(searchModel);

@@ -79,6 +79,21 @@ public class BrowseRecordsInStagingAction extends BrowseRecordsAction implements
 
     @Override
     public ItemBasePageLoadResult<ItemBean> queryItemBeans(QueryModel config, String language) throws ServiceException {
+
+        String criteria = config.getCriteria();
+        String value;
+        int index;
+        if (criteria.contains("staging_status")) { //$NON-NLS-1$
+            String[] temp = criteria.split(" "); //$NON-NLS-1$
+            value = temp[temp.length - 1];
+            index = value.indexOf(")"); //$NON-NLS-1$
+            value = (index != -1) ? value.substring(0, index) : value;
+
+            if (!"*".equals(value) && !value.matches("\\d{3}")) { //$NON-NLS-1$ //$NON-NLS-2$
+                throw new ServiceException("Input for staging status code should be three-digit number"); //$NON-NLS-1$
+            }
+        }
+
         if (!config.getDataClusterPK().endsWith(StorageAdmin.STAGING_SUFFIX)) {
             config.setDataClusterPK(config.getDataClusterPK() + StorageAdmin.STAGING_SUFFIX);
         }
