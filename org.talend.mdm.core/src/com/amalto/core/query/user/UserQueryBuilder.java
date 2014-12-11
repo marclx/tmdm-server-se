@@ -176,6 +176,10 @@ public class UserQueryBuilder {
         return new Compare(new Field(left), Predicate.EQUALS, right);
     }
 
+    public static Condition eq(TypedExpression left, TypedExpression right) {
+        return new Compare(left, Predicate.EQUALS, right);
+    }
+
     public static Condition eq(FieldMetadata field, String constant) {
         assertValueConditionArguments(field, constant);
         Field userField = new Field(field);

@@ -1,9 +1,11 @@
 package org.talend.mdm;
 
 import com.amalto.core.query.user.*;
+import com.amalto.core.query.user.Compare;
 import com.amalto.core.query.user.metadata.*;
 import junit.framework.TestCase;
 import org.talend.mdm.commmon.metadata.MetadataRepository;
+import org.talend.mdm.commmon.metadata.compare.*;
 import org.talend.mdm.query.QueryParser;
 
 import java.io.InputStream;
@@ -374,5 +376,17 @@ public class QueryParserTest extends TestCase {
         assertTrue(expression instanceof Select);
         Select select = (Select) expression;
         assertTrue(select.cache());
+    }
+
+    public void test22() throws Exception {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query22.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        Condition condition = select.getCondition();
+        assertNotNull(condition);
+        assertEquals(Compare.class, condition.getClass());
+        assertEquals(Field.class, ((Compare) condition).getLeft().getClass());
+        assertEquals(Field.class, ((Compare) condition).getRight().getClass());
     }
 }

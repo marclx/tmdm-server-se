@@ -22,12 +22,19 @@ class EqualsProcessor implements ConditionProcessor {
     @Override
     public Condition process(JsonObject condition, MetadataRepository repository) {
         JsonObject eq = condition.get("eq").getAsJsonObject();
-        String value = eq.get("value").getAsString(); //$NON-NLS-1$
         TypedExpressionProcessor processor = Deserializer.getTypedExpression(eq);
         TypedExpression left = processor.process(eq, repository);
-        if (left == null || value == null) {
+        JsonElement valueElement = eq.get("value");
+        if (left == null || valueElement == null) {
             throw new IllegalArgumentException("Malformed query (missing field conditions in condition).");
         }
-        return eq(left, value);
+        if (valueElement.isJsonPrimitive()) {
+            String value = valueElement.getAsString(); //$NON-NLS-1$
+            return eq(left, value);
+        } else {
+            JsonObject valueObject = valueElement.getAsJsonObject();
+            TypedExpressionProcessor rightProcessor = Deserializer.getTypedExpression(valueObject);
+            return eq(left, rightProcessor.process(valueObject, repository));
+        }
     }
 }
