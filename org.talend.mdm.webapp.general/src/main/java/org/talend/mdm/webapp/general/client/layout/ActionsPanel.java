@@ -1,5 +1,6 @@
 package org.talend.mdm.webapp.general.client.layout;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,6 +33,7 @@ import com.extjs.gxt.ui.client.widget.form.CheckBox;
 import com.extjs.gxt.ui.client.widget.form.CheckBoxGroup;
 import com.extjs.gxt.ui.client.widget.form.ComboBox;
 import com.extjs.gxt.ui.client.widget.form.ComboBox.TriggerAction;
+import com.extjs.gxt.ui.client.widget.form.Field;
 import com.extjs.gxt.ui.client.widget.form.FieldSet;
 import com.extjs.gxt.ui.client.widget.form.FormPanel;
 import com.extjs.gxt.ui.client.widget.form.Radio;
@@ -55,15 +57,7 @@ public class ActionsPanel extends FormPanel {
 
     private static final String DEFAULT_COLUMN_NUM = "defaultColNum"; //$NON-NLS-1$
 
-    private static final String CHARTS_ENABLED = "chartsOn"; //$NON-NLS-1$
-
-    private static final String CHARTS_MESSAGE_ADD = "Enable charts"; //$NON-NLS-1$
-
-    private static final String CHARTS_MESSAGE_REMOVE = "Disable charts"; //$NON-NLS-1$
-
     private GeneralServiceAsync service = (GeneralServiceAsync) Registry.get(General.OVERALL_SERVICE);
-
-    private Set<String> allCharts;
 
     private ListStore<ComboBoxModel> containerStore = new ListStore<ComboBoxModel>();
 
@@ -87,7 +81,13 @@ public class ActionsPanel extends FormPanel {
 
     private Button saveConfigBtn = new Button(MessageFactory.getMessages().save());
 
-    private boolean chartsOn;
+    private List<String> allPortlets;
+
+    private List<String> portletsToCheck;
+
+    private int colNum = 3;
+
+    private boolean chartsOn = false;
 
     private ComboBoxModel emptyModelValue = new ComboBoxModel();
 
@@ -189,7 +189,7 @@ public class ActionsPanel extends FormPanel {
                     chartsCheck.setVisible(true);
                     checkGroup.add(chartsCheck);
 
-                    CheckBoxGroup chartsGroup = new CheckBoxGroup();
+                    final CheckBoxGroup chartsGroup = new CheckBoxGroup();
                     chartsGroup.setHideLabel(true);
                     chartsGroup.setOrientation(Orientation.VERTICAL);
 
@@ -202,7 +202,21 @@ public class ActionsPanel extends FormPanel {
                                 if (this.getValue()) {
                                     chartsCheck.setValue(true);
                                     chartsOn = true;
+                                } else {
+                                    if (allChartsUnchecked()) {
+                                        chartsCheck.setValue(false);
+                                    }
                                 }
+                            }
+
+                            private boolean allChartsUnchecked() {
+                                List<Field<?>> chartsChks = chartsGroup.getAll();
+                                for (Field<?> check : chartsChks) {
+                                    if (((CheckBox) check).getValue()) {
+                                        return false;
+                                    }
+                                }
+                                return true;
                             }
                         };
                         checkChart.setName(portletName);
@@ -250,6 +264,7 @@ public class ActionsPanel extends FormPanel {
                 ActionsPanel.this.add(portalConfig);
                 ActionsPanel.this.layout(true);
             }
+
         });
     }
 
@@ -299,7 +314,7 @@ public class ActionsPanel extends FormPanel {
 
             @Override
             public void componentSelected(ButtonEvent ce) {
-                Map<String, Boolean> configUpdates = getPortalConfigUpdate();
+                List<String> configUpdates = getPortalConfigUpdate();
                 switchToWelcomeportal();
                 refreshPortal(configUpdates.toString());
 
@@ -407,80 +422,38 @@ public class ActionsPanel extends FormPanel {
     }
 
     public void updatePortletConfig(String configs) {
-        Map<String, Boolean> booleanConfigs = new HashMap<String, Boolean>();
-        allCharts = new HashSet<String>();
-        populateConfigs(configs, booleanConfigs, allCharts);
+        populateConfigs(configs);
+
         for (CheckBox check : portletCKBoxes.values()) {
             String name = check.getName();
-            if (booleanConfigs.containsKey(name)) {
-                check.setVisible(true);
-                check.setValue(booleanConfigs.get(name));
-            }
+            check.setVisible(allPortlets.contains(name));
+            check.setValue(portletsToCheck.contains(name));
         }
 
         if (isEnterprise) {
-            chartsOn = booleanConfigs.get(CHARTS_ENABLED);
-
-            if (!chartsOn) {
-                chartsCheck.setValue(false);
-                for (CheckBox check : portletCKBoxes.values()) {
-                    String name = check.getName();
-                    if (allCharts.contains(name)) {
-                        check.setVisible(true);
-                        check.setValue(false);
-                    }
-                }
-            } else {
-                chartsCheck.setValue(true);
-            }
+            chartsCheck.setValue(chartsOn);
         }
 
-        if (booleanConfigs.get(DEFAULT_COLUMN_NUM)) {
-            if (isEnterprise) {
-                col3Radio.setValue(true);
-            } else {
-                col2Radio.setValue(true);
-            }
-        } else {
-            if (isEnterprise) {
-                col2Radio.setValue(true);
-            } else {
-                col3Radio.setValue(true);
-            }
-        }
+        col3Radio.setValue(((colNum == 3) ? true : false));
+        col2Radio.setValue(((colNum == 2) ? true : false));
+
         if (saveBtn.isEnabled()) {
             saveConfigBtn.enable();
         }
         this.layout(true);
     }
 
-    private void populateConfigs(String dataString, Map<String, Boolean> booleanConfigs, Set<String> charts) {
-        String temp = dataString.substring(1, dataString.indexOf('}'));
-        String[] nameValues = temp.split(","); //$NON-NLS-1$
-        String name;
-        Boolean visible;
-        String[] nameValuePair;
-        for (String nameValue : nameValues) {
-            nameValuePair = nameValue.split("="); //$NON-NLS-1$
-            name = nameValuePair[0].trim();
-            visible = Boolean.parseBoolean(nameValuePair[1]);
-            booleanConfigs.put(name, visible);
-        }
+    private void populateConfigs(String dataString) {
+        String[] temp = dataString.split("; "); //$NON-NLS-1$
 
-        if (isEnterprise) {
-            temp = dataString.substring(dataString.indexOf('[') + 1, dataString.length() - 1);
+        String all = temp[0].substring(1, temp[0].length() - 1);
+        allPortlets = Arrays.asList(all.split(", ")); //$NON-NLS-1$
 
-            String[] names = temp.split(", "); //$NON-NLS-1$
-            charts.addAll((Arrays.asList(names)));
-        }
+        String checks = temp[1].substring(1, temp[1].length() - 1);
+        chartsOn = (checks.contains("chart_")); //$NON-NLS-1$
+        portletsToCheck = Arrays.asList(checks.split(", ")); //$NON-NLS-1$
 
-    }
-
-    private Set<String> parseSetString(String dataString) {
-        String temp = dataString.substring(1, dataString.length() - 1);
-        String[] names = temp.split(", "); //$NON-NLS-1$
-
-        return new HashSet<String>(Arrays.asList(names));
+        colNum = Integer.parseInt(temp[2]);
     }
 
     public void uncheckPortlet(String portletName) {
@@ -490,7 +463,7 @@ public class ActionsPanel extends FormPanel {
 
     private void updateChartsConfig(boolean isChartsOn) {
         for (CheckBox check : portletCKBoxes.values()) {
-            if (allCharts.contains(check.getName())) {
+            if (DEFAULT_CHART_NAMES.contains(check.getName())) {
                 if (isChartsOn) {
                     check.setVisible(true);
                     check.setValue(true);
@@ -503,33 +476,18 @@ public class ActionsPanel extends FormPanel {
         this.layout(true);
     }
 
-    private Map<String, Boolean> getPortalConfigUpdate() {
-        Map<String, Boolean> updates = new HashMap<String, Boolean>();
+    private List<String> getPortalConfigUpdate() {
+        List<String> updates = new ArrayList<String>();
         CheckBox check;
         for (String name : getDefaultPortletNames()) {
             check = portletCKBoxes.get(name);
-            if (check.isVisible()) {
-                if (!isEnterprise) {
-                    updates.put(name, check.getValue());
-                } else {
-                    if (!allCharts.contains(name) || chartsOn) {
-                        updates.put(name, check.getValue());
-                    }
-                }
+            if (check.getValue()) {
+                updates.add(name);
             }
         }
 
-        boolean defaultColNum = true;
-        if (!col3Radio.getValue()) {
-            defaultColNum = isEnterprise ? false : true;
-        } else {
-            defaultColNum = isEnterprise ? true : false;
-        }
-        updates.put(DEFAULT_COLUMN_NUM, defaultColNum);
+        updates.add((col3Radio.getValue() ? "3" : "2")); //$NON-NLS-1$ //$NON-NLS-2$
 
-        if (isEnterprise) {
-            updates.put(CHARTS_ENABLED, chartsOn);
-        }
         return updates;
     }
 

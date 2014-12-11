@@ -28,7 +28,9 @@ public class ItemPKCriteria implements Serializable {
     private String contentKeywords;
 
     private String keysKeywords;
-    
+
+    private String keys;
+
     private boolean compoundKeyKeywords;
 
     private Long fromDate;
@@ -44,8 +46,8 @@ public class ItemPKCriteria implements Serializable {
     public ItemPKCriteria() {
     }
 
-    public ItemPKCriteria(String revisionId, String clusterName, String conceptName, String contentKeywords, String keysKeywords, boolean compoundKeyKeywords, 
-            Long fromDate, Long toDate, int skip, int maxItems, boolean useFTSearch) {
+    public ItemPKCriteria(String revisionId, String clusterName, String conceptName, String contentKeywords, String keysKeywords,
+            boolean compoundKeyKeywords, Long fromDate, Long toDate, int skip, int maxItems, boolean useFTSearch) {
         this.revisionId = revisionId;
         this.clusterName = clusterName;
         this.conceptName = conceptName;
@@ -98,7 +100,15 @@ public class ItemPKCriteria implements Serializable {
     public void setKeysKeywords(String keysKeywords) {
         this.keysKeywords = keysKeywords;
     }
-    
+
+    public String getKeys() {
+        return this.keys;
+    }
+
+    public void setKeys(String keys) {
+        this.keys = keys;
+    }
+
     public boolean isCompoundKeyKeywords() {
         return compoundKeyKeywords;
     }
@@ -106,7 +116,7 @@ public class ItemPKCriteria implements Serializable {
     public void setCompoundKeyKeywords(boolean compoundKeyKeywords) {
         this.compoundKeyKeywords = compoundKeyKeywords;
     }
-    
+
     public Long getFromDate() {
         return fromDate;
     }

@@ -53,6 +53,10 @@ public class LineageTabPanel extends TabPanel {
         setSelection(listTabItem);
     }
 
+    public void init() {
+        setSelection(listTabItem);
+    }
+
     public LineageListPanel getLineageListPanel() {
         return this.lineageListPanel;
     }

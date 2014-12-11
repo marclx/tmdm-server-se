@@ -19,10 +19,14 @@ import javax.servlet.ServletContextListener;
 import com.amalto.core.ejb.local.XmlServerSLWrapperLocal;
 import com.amalto.core.jobox.properties.ThreadIsolatedSystemProperties;
 import com.amalto.core.objects.routing.v2.ejb.RoutingEngineV2POJO;
+import com.amalto.core.save.generator.AutoIdGenerator;
+import com.amalto.core.save.generator.AutoIncrementGenerator;
 import com.amalto.core.server.ConfigurationInfo;
 import com.amalto.core.server.XmlServer;
 import com.amalto.core.util.Util;
+import com.amalto.core.util.XtentisException;
 import org.apache.log4j.Logger;
+import org.talend.mdm.commmon.util.webapp.XSystemObjects;
 
 /**
  *
@@ -61,6 +65,17 @@ public class ContextListener implements ServletContextListener {
      * @param servletContextEvent Parameter to access servlet specific info (provided by J2EE container)
      */
     public void contextDestroyed(ServletContextEvent servletContextEvent) {
+        // Save auto increment state
+        try {
+            XmlServerSLWrapperLocal server = Util.getXmlServerCtrlLocal();
+            server.start(XSystemObjects.DC_CONF.getName());
+            AutoIncrementGenerator.get().saveState(server);
+            server.commit(XSystemObjects.DC_CONF.getName());
+        } catch (XtentisException e) {
+            // Don't re-throw exception in case this breaks normal J2EE container operation.
+            log.error("Unable to save auto increment counter state.", e);   //$NON-NLS-1$
+        }
+
         // Close database
         log.info("Closing database");  //$NON-NLS-1$
         try {
@@ -81,5 +96,7 @@ public class ContextListener implements ServletContextListener {
 
         // Server is shutting down, replace the system properties with the ones backed up at start up.
         System.setProperties(previousSystemProperties);
+
+
     }
 }

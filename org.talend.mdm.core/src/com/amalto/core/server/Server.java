@@ -26,6 +26,15 @@ import com.amalto.core.storage.transaction.TransactionManager;
 public interface Server {
 
     /**
+     * This is the MDM (mdm.conf) configuration property to indicate current server is running in a clustered
+     * environment. Setting this property to <code>true</code> may have impacts on the choice of implementation for
+     * internal components.
+     * 
+     * @see com.amalto.core.save.generator.AutoIncrementGenerator
+     */
+    String SYSTEM_CLUSTER = "system.cluster";
+
+    /**
      * Method to use to check if a datasource suitable for all parameter values is available (if it exists).
      *
      * @param dataSourceName A datasource name in the datasource configuration content.

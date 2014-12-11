@@ -13,6 +13,7 @@
 package org.talend.mdm.webapp.welcomeportal.client.widget;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.talend.mdm.webapp.base.client.SessionAwareAsyncCallback;
@@ -105,27 +106,38 @@ public abstract class BasePortlet extends Portlet {
 
                     @Override
                     public void componentSelected(IconButtonEvent ce) {
-                        // update db to set its visibility and autorefresh to false
-                        service.savePortalConfigForClose(portletName, new SessionAwareAsyncCallback<Void>() {
+                        final List<BasePortlet> portlets = ((MainFramePanel) portal).getPortlets();
+                        final int index = portlets.indexOf(BasePortlet.this);
 
-                            @Override
-                            public void onSuccess(Void result1) {
-                                BasePortlet.this.hide();
-                                ((MainFramePanel) portal).updateVisibilities();
-                                resetAutofresh(false);
-                                portalConfigs.add(PortalProperties.KEY_AUTO_ONOFFS, portletName, configModel.isAutoRefresh()
-                                        .toString());
-                                portalConfigs.add(PortalProperties.KEY_PORTLET_VISIBILITIES, portletName,
-                                        ((Boolean) BasePortlet.this.isVisible()).toString());
-                                removePortlet(portletName);
-                            }
+                        ((MainFramePanel) portal).removeAllPortlets();
+                        portlets.remove(index);
+                        ((MainFramePanel) portal).refresh();
+                        String portletToLocationsStr = ((MainFramePanel) portal).getUpdatedLocations().toString();
 
-                            @Override
-                            protected void doOnFailure(Throwable caught) {
-                                super.doOnFailure(caught);
-                                // do nothing
-                            }
-                        });
+                        service.savePortalConfig(PortalProperties.KEY_PORTLET_LOCATIONS, portletToLocationsStr,
+                                new SessionAwareAsyncCallback<Void>() {
+
+                                    @Override
+                                    public void onSuccess(Void result1) {
+                                        ((MainFramePanel) portal).render();
+                                        unmarkPortlet(portletName);
+                                        boolean auto = BasePortlet.this.isAutoOn();
+                                        if (auto) {
+                                            BasePortlet.this.autoRefresh(false);
+                                        }
+                                        BasePortlet.this.removeAllListeners();
+                                        BasePortlet.this.removeAll();
+                                    }
+
+                                    @Override
+                                    protected void doOnFailure(Throwable caught) {
+                                        super.doOnFailure(caught);
+                                        ((MainFramePanel) portal).removeAllPortlets();
+
+                                        portlets.add(index, BasePortlet.this);
+                                        ((MainFramePanel) portal).refresh();
+                                    }
+                                });
                     }
 
                 }));
@@ -179,7 +191,6 @@ public abstract class BasePortlet extends Portlet {
         }
         interval = ((MainFramePanel) portal).getInterval();
 
-        interval = ((MainFramePanel) portal).getInterval();
         // init and used for non-chart portlets, overwritten in chart portlets
         configModel = new BaseConfigModel(startedAsOn);
 
@@ -279,7 +290,7 @@ public abstract class BasePortlet extends Portlet {
         return this.portletName;
     }
 
-    private native void removePortlet(String name)/*-{
-        $wnd.amalto.core.unmarkPortlet(name);
+    private native void unmarkPortlet(String name)/*-{
+		$wnd.amalto.core.unmarkPortlet(name);
     }-*/;
 }

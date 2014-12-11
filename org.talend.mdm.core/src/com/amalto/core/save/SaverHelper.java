@@ -78,9 +78,9 @@ public class SaverHelper {
         SaverContextFactory contextFactory = session.getContextFactory();
         DocumentSaverContext context = contextFactory.createPartialUpdate(partialPutItem.getDatacluster(),
                 partialPutItem.getDatamodel(),
-                "genericUI", //$NON-NLS-1$ // Source is only actually used if isReport() returns true.
+                partialPutItem.getSource(),
                 new ByteArrayInputStream(partialPutItem.getXml().getBytes("UTF-8")), //$NON-NLS-1$
-                true,
+                true, // Always validate
                 partialPutItem.isReport(),
                 partialPutItem.getPivot(),
                 partialPutItem.getKeyXPath(),

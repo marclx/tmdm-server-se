@@ -259,9 +259,13 @@ public class StorageMetadataUtils {
      * 
      * @param value The value to check.
      * @param field The field to receive the value.
-     * @return <code>true</code> if correct, <code>false</code> otherwise.
+     * @return <code>true</code> if correct, <code>false</code> otherwise. Since all fields can receive
+     * <code>null</code>, <code>null</code> always returns <code>true</code>.
      */
     public static boolean isValueAssignable(final String value, FieldMetadata field) {
+        if (value == null) {
+            return true;
+        }
         try {
             List<TypeMetadata> fieldType = field.accept(new DefaultMetadataVisitor<List<TypeMetadata>>() {
                 List<TypeMetadata> fieldTypes = new LinkedList<TypeMetadata>();

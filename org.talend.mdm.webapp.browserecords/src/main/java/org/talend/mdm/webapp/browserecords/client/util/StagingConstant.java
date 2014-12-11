@@ -36,6 +36,12 @@ public class StagingConstant {
 
     public static final String MATCH_SCORE = "score"; //$NON-NLS-1$
 
+    public static final String MATCH_EXACT_SCORE = "exact_score"; //$NON-NLS-1$
+
+    public static final String MATCH_FIELD_SCORE = "field_score"; //$NON-NLS-1$
+
+    public static final String MATCH_EXACT_FIELD_SCORE = "exact_field_score"; //$NON-NLS-1$
+
     public static final String MATCH_DETAILS = "details"; //$NON-NLS-1$
 
     public static final String MATCH_FIELD = "field"; //$NON-NLS-1$

@@ -91,6 +91,13 @@ public class MappingGenerator extends DefaultMetadataVisitor<Element> {
             Attr classTable = document.createAttribute("table"); //$NON-NLS-1$
             classTable.setValue(tableNames.peek());
             classElement.getAttributes().setNamedItem(classTable);
+            // Adds schema name (if set in configuration)
+            String value = dataSource.getAdvancedProperties().get("hibernate.default_schema"); //$NON-NLS-1
+            if (value != null) {
+                Attr classSchema = document.createAttribute("schema"); //$NON-NLS-1$
+                classSchema.setValue(value);
+                classElement.getAttributes().setNamedItem(classSchema);
+            }
             // dynamic-update="true"
             Attr dynamicUpdate = document.createAttribute("dynamic-update");  //$NON-NLS-1$
             dynamicUpdate.setValue("true"); //$NON-NLS-1$

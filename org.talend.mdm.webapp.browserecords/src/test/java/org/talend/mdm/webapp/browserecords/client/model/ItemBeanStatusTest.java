@@ -12,6 +12,8 @@
 // ============================================================================
 package org.talend.mdm.webapp.browserecords.client.model;
 
+import org.talend.mdm.webapp.base.client.model.ItemResult;
+
 import junit.framework.TestCase;
 
 /**

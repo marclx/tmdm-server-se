@@ -26,12 +26,16 @@ import org.restlet.client.data.Method;
 import org.restlet.client.ext.json.JsonRepresentation;
 import org.restlet.client.representation.StringRepresentation;
 import org.talend.mdm.webapp.base.client.SessionAwareAsyncCallback;
+import org.talend.mdm.webapp.base.client.i18n.BaseMessagesFactory;
 import org.talend.mdm.webapp.base.client.rest.ClientResourceWrapper;
 import org.talend.mdm.webapp.base.client.rest.ResourceSessionAwareCallbackHandler;
 import org.talend.mdm.webapp.base.client.rest.RestServiceHelper;
+import org.talend.mdm.webapp.browserecords.client.i18n.MessagesFactory;
 import org.talend.mdm.webapp.browserecords.client.util.StagingConstant;
 
 import com.extjs.gxt.ui.client.data.BaseTreeModel;
+import com.extjs.gxt.ui.client.widget.MessageBox;
+import com.google.gwt.i18n.client.NumberFormat;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONValue;
@@ -59,19 +63,16 @@ public class ExplainRestServiceHandler {
         this.client = client;
     }
 
-    public void explainGroupResult(String dataCluster, String concept, String groupId,
+    public void explainGroupResult(String dataCluster, final String concept, String groupId,
             final SessionAwareAsyncCallback<BaseTreeModel> callback) {
         if (dataCluster == null || dataCluster.isEmpty() || concept == null || concept.isEmpty() || groupId == null
                 || groupId.isEmpty()) {
             throw new IllegalArgumentException();
         }
-        StringBuilder uri = new StringBuilder();
-        uri.append(restServiceUrl).append(RestServiceHelper.SEPARATOR).append(dataCluster).append(RestServiceHelper.SEPARATOR)
-                .append("groups").append(RestServiceHelper.SEPARATOR); //$NON-NLS-1$
         Map<String, String> parameterMap = new HashMap<String, String>();
         parameterMap.put("type", concept); //$NON-NLS-1$
         parameterMap.put("group", groupId); //$NON-NLS-1$
-        client.init(Method.GET, uri.toString(), parameterMap);
+        client.init(Method.GET, restServiceUrl + '/' + dataCluster + '/' + "groups" + '/', parameterMap);
         client.setCallback(new ResourceSessionAwareCallbackHandler() {
 
             @Override
@@ -80,25 +81,24 @@ public class ExplainRestServiceHandler {
                 JsonRepresentation jsonRepresentation = RestServiceHelper.getJsonRepresentationFromResponse(response);
                 if (jsonRepresentation != null) {
                     result = buildGroupResultFromJsonRepresentation(jsonRepresentation);
+                    callback.onSuccess(result);
+                } else {
+                    MessageBox.alert(MessagesFactory.getMessages().warning_title(), BaseMessagesFactory.getMessages()
+                            .matching_failed(concept), null);
                 }
-                callback.onSuccess(result);
             }
         });
         client.request();
     }
 
-    public void simulateMatch(String dataCluster, String concept, String ids,
+    public void simulateMatch(String dataCluster, final String concept, String ids,
             final SessionAwareAsyncCallback<BaseTreeModel> callback) {
         if (dataCluster == null || dataCluster.isEmpty() || concept == null || concept.isEmpty()) {
             throw new IllegalArgumentException();
         }
-        StringBuilder uri = new StringBuilder();
-        uri.append(restServiceUrl).append(RestServiceHelper.SEPARATOR).append(dataCluster).append(RestServiceHelper.SEPARATOR)
-                .append("records").append(RestServiceHelper.SEPARATOR); //$NON-NLS-1$
         Map<String, String> parameterMap = new HashMap<String, String>();
         parameterMap.put("type", concept); //$NON-NLS-1$
-
-        client.init(Method.POST, uri.toString(), parameterMap);
+        client.init(Method.POST, restServiceUrl + '/' + dataCluster + '/' + "records" + '/', parameterMap);
         client.setPostEntity(new StringRepresentation(ids, MediaType.TEXT_PLAIN));
         client.setCallback(new ResourceSessionAwareCallbackHandler() {
 
@@ -108,40 +108,14 @@ public class ExplainRestServiceHandler {
                 JsonRepresentation jsonRepresentation = RestServiceHelper.getJsonRepresentationFromResponse(response);
                 if (jsonRepresentation != null) {
                     result = buildGroupResultFromJsonRepresentation(jsonRepresentation);
+                    callback.onSuccess(result);
+                } else {
+                    MessageBox.alert(MessagesFactory.getMessages().warning_title(), BaseMessagesFactory.getMessages()
+                            .matching_failed(concept), null);
                 }
-                callback.onSuccess(result);
             }
         });
         client.request(MediaType.TEXT_PLAIN);
-    }
-
-    public void compareRecords(String dataModel, String concept, String recordXml,
-            final SessionAwareAsyncCallback<BaseTreeModel> callback) {
-        if (dataModel == null || dataModel.isEmpty() || concept == null || concept.isEmpty()) {
-            throw new IllegalArgumentException();
-        }
-        StringBuilder uri = new StringBuilder();
-        uri.append(restServiceUrl).append(RestServiceHelper.SEPARATOR);
-        Map<String, String> parameterMap = new HashMap<String, String>();
-        parameterMap.put("model", dataModel); //$NON-NLS-1$
-        parameterMap.put("type", concept); //$NON-NLS-1$
-        client.init(Method.POST, uri.toString(), parameterMap);
-        client.setPostEntity(new StringRepresentation(recordXml, MediaType.APPLICATION_XML));
-        client.setCallback(new ResourceSessionAwareCallbackHandler() {
-
-            @Override
-            public void doProcess(Request request, Response response) throws Exception {
-                BaseTreeModel result = null;
-                JsonRepresentation jsonRepresentation = RestServiceHelper.getJsonRepresentationFromResponse(response);
-                if (jsonRepresentation != null) {
-                    JSONObject jsonObject = jsonRepresentation.getJsonObject();
-                    JSONValue jsonValue = jsonObject.get(StagingConstant.MATCH_ROOT_NAME);
-                    result = buildTreeModelFromJsonRepresentation(jsonValue);
-                }
-                callback.onSuccess(result);
-            }
-        });
-        client.request(MediaType.APPLICATION_XML);
     }
 
     private BaseTreeModel buildGroupResultFromJsonRepresentation(JsonRepresentation representation) throws IOException {
@@ -184,7 +158,7 @@ public class ExplainRestServiceHandler {
                     String groupId = getStringValue(getJSONValue(resultArray, StagingConstant.MATCH_GROUP_ID));
                     group.set(StagingConstant.MATCH_GROUP_ID, groupId);
                     group.set(StagingConstant.MATCH_GROUP_CONFIDENCE,
-                            getStringValue(getJSONValue(resultArray, StagingConstant.MATCH_GROUP_CONFIDENCE)));
+                            getScoreValue(getJSONValue(resultArray, StagingConstant.MATCH_GROUP_CONFIDENCE)));
                     group.set(StagingConstant.MATCH_GROUP_GID, groupId);
                     group.set(StagingConstant.MATCH_GROUP_SZIE, relatedIdArray.size());
                     JSONValue valueArrayValue = getJSONValue(resultArray, "values"); //$NON-NLS-1$
@@ -248,24 +222,37 @@ public class ExplainRestServiceHandler {
                     JSONArray matchArray = getJSONArray(detailValue, "match"); //$NON-NLS-1$
                     if (matchArray != null) {
                         if ("true".equals(getStringValue(getJSONValue(matchArray, "is_match")))) { //$NON-NLS-1$ //$NON-NLS-2$
-                            JSONValue scoresValue = getJSONValue(matchArray, "scores"); //$NON-NLS-1$
-                            if (scoresValue != null && scoresValue.isArray() != null) {
-                                JSONArray scoresArray = scoresValue.isArray();
-                                StringBuilder attributebBuilder = new StringBuilder();
-                                for (int j = 0; j < scoresArray.size(); j++) {
-                                    JSONArray scoreArray = getJSONArray(scoresArray.get(j), StagingConstant.MATCH_SCORE);
-                                    if (scoreArray != null) {
-                                        attributebBuilder.append(getStringValue(getJSONValue(scoreArray,
-                                                StagingConstant.MATCH_FIELD)));
-                                        attributebBuilder.append(StagingConstant.VALUE_SEPARATOR);
-                                        attributebBuilder.append(getStringValue(getJSONValue(scoreArray,
-                                                StagingConstant.MATCH_VALUE)));
-                                        attributebBuilder.append(","); //$NON-NLS-1$
+                            JSONValue scoreValue = getJSONValue(matchArray, StagingConstant.MATCH_SCORE);
+                            detail.set(StagingConstant.MATCH_SCORE, getScoreValue(scoreValue));
+                            detail.set(StagingConstant.MATCH_EXACT_SCORE, getStringValue(scoreValue));
+                            JSONValue fieldScoresValue = getJSONValue(matchArray, "field_scores"); //$NON-NLS-1$
+                            if (fieldScoresValue != null && fieldScoresValue.isArray() != null) {
+                                JSONArray fieldScoresArray = fieldScoresValue.isArray();
+                                StringBuilder scoreAttributeBuilder = new StringBuilder();
+                                StringBuilder exactScoreAttributeBuilder = new StringBuilder();
+                                for (int j = 0; j < fieldScoresArray.size(); j++) {
+                                    JSONArray fieldScoreArray = getJSONArray(fieldScoresArray.get(j),
+                                            StagingConstant.MATCH_FIELD_SCORE);
+                                    if (fieldScoreArray != null) {
+                                        String fieldName = getStringValue(getJSONValue(fieldScoreArray,
+                                                StagingConstant.MATCH_FIELD));
+                                        scoreAttributeBuilder.append(fieldName);
+                                        exactScoreAttributeBuilder.append(fieldName);
+                                        scoreAttributeBuilder.append(StagingConstant.VALUE_SEPARATOR);
+                                        exactScoreAttributeBuilder.append(StagingConstant.VALUE_SEPARATOR);
+                                        JSONValue fieldScoreValue = getJSONValue(fieldScoreArray, StagingConstant.MATCH_VALUE);
+                                        scoreAttributeBuilder.append(getScoreValue(fieldScoreValue));
+                                        exactScoreAttributeBuilder.append(getStringValue(fieldScoreValue));
+                                        scoreAttributeBuilder.append(","); //$NON-NLS-1$
+                                        exactScoreAttributeBuilder.append(","); //$NON-NLS-1$
                                     }
                                 }
-                                String scoreValue = attributebBuilder.length() > 0 ? attributebBuilder.toString().substring(0,
-                                        attributebBuilder.toString().length() - 1) : ""; //$NON-NLS-1$
-                                detail.set(StagingConstant.MATCH_SCORE, scoreValue);
+                                String fieldScoreValue = scoreAttributeBuilder.length() > 0 ? scoreAttributeBuilder.toString()
+                                        .substring(0, scoreAttributeBuilder.toString().length() - 1) : ""; //$NON-NLS-1$
+                                detail.set(StagingConstant.MATCH_FIELD_SCORE, fieldScoreValue);
+                                String fieldExactScoreValue = exactScoreAttributeBuilder.length() > 0 ? exactScoreAttributeBuilder
+                                        .toString().substring(0, exactScoreAttributeBuilder.toString().length() - 1) : ""; //$NON-NLS-1$
+                                detail.set(StagingConstant.MATCH_EXACT_FIELD_SCORE, fieldExactScoreValue);
                             }
                         }
                     }
@@ -353,6 +340,15 @@ public class ExplainRestServiceHandler {
             } else if (jsonValue.isNumber() != null) {
                 value = jsonValue.isNumber().toString();
             }
+        }
+        return value;
+    }
+
+    private String getScoreValue(JSONValue jsonValue) {
+        String value = null;
+        if (jsonValue != null && jsonValue.isNumber() != null) {
+            NumberFormat numberFormat = NumberFormat.getFormat("0.00"); //$NON-NLS-1$
+            value = numberFormat.format(jsonValue.isNumber().doubleValue() * 100) + "%"; //$NON-NLS-1$
         }
         return value;
     }

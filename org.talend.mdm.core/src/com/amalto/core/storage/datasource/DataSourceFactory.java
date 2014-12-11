@@ -64,57 +64,62 @@ public class DataSourceFactory {
             String processedConnectionURL;
             RDBMSDataSource.DataSourceDialect dialect = ((RDBMSDataSource) dataSource).getDialectName();
             switch (dialect) {
-            case POSTGRES:
-                // Postgres always creates lower case database name
-                processedConnectionURL = connectionURL.replace(placeholderName, value).toLowerCase();
-                break;
-            case MYSQL:
-                // TMDM-6559: MySQL doesn't like '-' in database name
-                processedConnectionURL = connectionURL.replace(placeholderName, value);
-                if (processedConnectionURL.indexOf('-') > 0) {
-                    // Uses URI-based parsing to prevent replace of '-' in host name.
-                    URI uri = URI.create(processedConnectionURL.substring(5));
-                    if (uri.getPath().indexOf('-') > 0) {
-                        String previousURL = processedConnectionURL;
-                        processedConnectionURL = processedConnectionURL.replace(uri.getPath(), uri.getPath().replace('-', '_'));
-                        LOGGER.warn("JDBC URL '" + previousURL + "' contains character(s) not supported by MySQL (replaced with '" + processedConnectionURL + "' by MDM).");
+                case POSTGRES:
+                    // Postgres always creates lower case database name
+                    processedConnectionURL = connectionURL.replace(placeholderName, value).toLowerCase();
+                    break;
+                case MYSQL:
+                    // TMDM-6559: MySQL doesn't like '-' in database name
+                    processedConnectionURL = connectionURL.replace(placeholderName, value);
+                    if (processedConnectionURL.indexOf('-') > 0) {
+                        // Uses URI-based parsing to prevent replace of '-' in host name.
+                        URI uri = URI.create(processedConnectionURL.substring(5));
+                        if (uri.getPath().indexOf('-') > 0) {
+                            String previousURL = processedConnectionURL;
+                            processedConnectionURL = processedConnectionURL.replace(uri.getPath(), uri.getPath().replace('-', '_'));
+                            LOGGER.warn("JDBC URL '" + previousURL + "' contains character(s) not supported by MySQL (replaced with '" + processedConnectionURL + "' by MDM).");
+                        }
                     }
-                }
-                break;
-            case H2:
-            case ORACLE_10G:
-            case SQL_SERVER:
-            default: // default for all databases
-                processedConnectionURL = connectionURL.replace(placeholderName, value);
-                break;
+                    break;
+                case H2:
+                case ORACLE_10G:
+                case SQL_SERVER:
+                default: // default for all databases
+                    processedConnectionURL = connectionURL.replace(placeholderName, value);
+                    break;
             }
             rdbmsDataSource.setConnectionURL(processedConnectionURL);
             // Database name
             String databaseName = rdbmsDataSource.getDatabaseName();
             String processedDatabaseName = databaseName.replace(placeholderName, value);
             switch (dialect) {
-            case POSTGRES:
-                // Postgres always creates lower case database name
-                processedDatabaseName = processedDatabaseName.toLowerCase();
-                break;
-            case MYSQL:
-                if (processedDatabaseName.indexOf('-') > 0) {
-                    LOGGER.warn("Database name '" + processedDatabaseName + "' contains character(s) not supported by MySQL.");
-                }
-                processedDatabaseName = processedDatabaseName.replace('-', '_'); // TMDM-6559: MySQL doesn't like '-' in
-                                                                                 // database name
-                break;
-            case H2:
-            case ORACLE_10G:
-            case SQL_SERVER:
-            case DB2:
-            default:
-                // Nothing to do for other databases
-                break;
+                case POSTGRES:
+                    // Postgres always creates lower case database name
+                    processedDatabaseName = processedDatabaseName.toLowerCase();
+                    break;
+                case MYSQL:
+                    if (processedDatabaseName.indexOf('-') > 0) {
+                        LOGGER.warn("Database name '" + processedDatabaseName + "' contains character(s) not supported by MySQL.");
+                    }
+                    processedDatabaseName = processedDatabaseName.replace('-', '_'); // TMDM-6559: MySQL doesn't like '-' in
+                    // database name
+                    break;
+                case H2:
+                case ORACLE_10G:
+                case SQL_SERVER:
+                case DB2:
+                default:
+                    // Nothing to do for other databases
+                    break;
             }
             rdbmsDataSource.setDatabaseName(processedDatabaseName);
             // User name
             rdbmsDataSource.setUserName(rdbmsDataSource.getUserName().replace(placeholderName, value));
+            // Advanced properties
+            Map<String, String> advancedProperties = rdbmsDataSource.getAdvancedProperties();
+            for (Map.Entry<String, String> entry : advancedProperties.entrySet()) {
+                advancedProperties.put(entry.getKey(), entry.getValue().replace(placeholderName, value));
+            }
         }
     }
 

@@ -81,4 +81,12 @@ public interface BaseMessages extends Messages {
     String underlying_cause();
 
     String matching_failed(String concept);
+    
+    String delete_success_prefix();
+    
+    String delete_fail_prefix();
+    
+    String restore_success_prefix();
+    
+    String restore_fail_prefix();
 }

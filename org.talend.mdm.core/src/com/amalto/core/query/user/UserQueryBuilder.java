@@ -164,10 +164,13 @@ public class UserQueryBuilder {
     }
 
     public static Condition eq(TypedExpression expression, String constant) {
-        assertValueConditionArguments(expression, constant);
+        assertNullField(expression);
         if (expression instanceof Field) {
             return eq(((Field) expression), constant);
         } else {
+            if (constant == null) {
+                return isNull(expression);
+            }
             return new Compare(expression, Predicate.EQUALS, createConstant(expression, constant));
         }
     }
@@ -181,7 +184,7 @@ public class UserQueryBuilder {
     }
 
     public static Condition eq(FieldMetadata field, String constant) {
-        assertValueConditionArguments(field, constant);
+        assertNullField(field);
         Field userField = new Field(field);
         if (StorageMetadataUtils.isValueAssignable(constant, field)) {
             return eq(userField, constant);
@@ -191,6 +194,12 @@ public class UserQueryBuilder {
     }
 
     public static Condition eq(Field field, String constant) {
+        if (field == null) {
+            throw new IllegalArgumentException("Field cannot be null");
+        }
+        if (constant == null) {
+            return isNull(field);
+        }
         assertValueConditionArguments(field, constant);
         if (!StorageMetadataUtils.isValueAssignable(constant, field.getFieldMetadata())) {
             return UserQueryHelper.FALSE;
@@ -420,6 +429,10 @@ public class UserQueryBuilder {
         return new Alias(new Count(), "count"); //$NON-NLS-1$
     }
 
+    public static TypedExpression count(FieldMetadata field) {
+        return new Count(new Field(field));
+    }
+
     public static TypedExpression timestamp() {
         return Timestamp.INSTANCE;
     }
@@ -617,14 +630,14 @@ public class UserQueryBuilder {
         return this;
     }
 
-    public UserQueryBuilder orderBy(TypedExpression field, OrderBy.Direction direction) {
-        if (field == null) {
+    public UserQueryBuilder orderBy(TypedExpression expression, OrderBy.Direction direction) {
+        if (expression == null) {
             throw new IllegalArgumentException("Field cannot be null");
         }
-        if (field instanceof Field) {
-            orderBy(((Field) field).getFieldMetadata(), direction);
+        if (expression instanceof Field) {
+            orderBy(((Field) expression).getFieldMetadata(), direction);
         } else {
-            expressionAsSelect().addOrderBy(new OrderBy(field, direction));
+            expressionAsSelect().addOrderBy(new OrderBy(expression, direction));
         }
         return this;
     }

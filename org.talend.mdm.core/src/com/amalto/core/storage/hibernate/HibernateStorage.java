@@ -22,7 +22,19 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 import net.sf.ehcache.CacheManager;
 
@@ -99,6 +111,7 @@ import org.xml.sax.SAXException;
 
 import com.amalto.core.query.optimization.ConfigurableContainsOptimizer;
 import com.amalto.core.query.optimization.ContainsOptimizer;
+import com.amalto.core.query.optimization.ImplicitOrderBy;
 import com.amalto.core.query.optimization.IncompatibleOperators;
 import com.amalto.core.query.optimization.Optimizer;
 import com.amalto.core.query.optimization.RangeOptimizer;
@@ -395,6 +408,13 @@ public class HibernateStorage implements Storage {
                                 }
                             }
                         }
+                        //TODO: may need to add db2 after confirmation
+                        if (dataSource.getDialectName() == RDBMSDataSource.DataSourceDialect.ORACLE_10G) {
+                            ComplexTypeMetadata indexEntityType = repository.getComplexType(indexedField.getEntityTypeName());
+                            if (!indexEntityType.getSuperTypes().isEmpty() || !indexEntityType.getSubTypes().isEmpty()) {
+                                LOGGER.warn("Cannot index field '" + indexedField.getPath() + "' of type '" + indexedField.getEntityTypeName() + "' (part of an inheritance tree)."); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                            }
+                        }
                     }
                 }
                 break;
@@ -417,6 +437,18 @@ public class HibernateStorage implements Storage {
                         databaseIndexedFields.add(database.getField(METADATA_TASK_ID));
                     }
                 }
+                //TODO: may need to add db2 after confirmation
+                if (dataSource.getDialectName() == RDBMSDataSource.DataSourceDialect.ORACLE_10G) {
+                    ComplexTypeMetadata indexEntityType;
+                    for (FieldMetadata indexedField : databaseIndexedFields) {
+                        indexEntityType = repository.getComplexType(indexedField.getEntityTypeName());
+                        if (indexEntityType == null || !indexEntityType.getSuperTypes().isEmpty()
+                                || !indexEntityType.getSubTypes().isEmpty()) {
+                            LOGGER.warn("Cannot index field '" + indexedField.getPath() + "' of type '" + indexedField.getEntityTypeName() + "' (part of an inheritance tree)."); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                        }
+                    }
+                }
+
                 break;
             case SYSTEM: // Nothing to index on SYSTEM
                 break;
@@ -913,7 +945,8 @@ public class HibernateStorage implements Storage {
                                 typesToDrop.add((ComplexTypeMetadata) element);
                             }
                             if (LOGGER.isDebugEnabled()) {
-                                LOGGER.debug("Change '" + change.getMessage(Locale.getDefault()) + "' requires a database schema update.");
+                                LOGGER.debug("Change '" + change.getMessage(Locale.getDefault())
+                                        + "' requires a database schema update.");
                             }
                         }
                     } else {
@@ -932,7 +965,8 @@ public class HibernateStorage implements Storage {
                                 typesToDrop.add((ComplexTypeMetadata) element);
                             }
                             if (LOGGER.isDebugEnabled()) {
-                                LOGGER.debug("Change '" + change.getMessage(Locale.getDefault()) + "' requires a database schema update.");
+                                LOGGER.debug("Change '" + change.getMessage(Locale.getDefault())
+                                        + "' requires a database schema update.");
                             }
                         }
                     }
@@ -942,7 +976,8 @@ public class HibernateStorage implements Storage {
             case LOW:
                 if (LOGGER.isTraceEnabled()) {
                     for (Change change : impactCategory.getValue()) {
-                        LOGGER.trace("Change '" + change.getMessage(Locale.getDefault()) + "' does NOT require a database schema update.");
+                        LOGGER.trace("Change '" + change.getMessage(Locale.getDefault())
+                                + "' does NOT require a database schema update.");
                     }
                     break;
                 }
@@ -1147,26 +1182,28 @@ public class HibernateStorage implements Storage {
                             // Empty values from intermediate tables to this non instantiable type and unset inbound
                             // references
                             for (ReferenceFieldMetadata reference : references) {
-                                if (reference.isMany()) {
-                                    String formattedTableName = tableResolver.getCollectionTable(reference);
-                                    session.createSQLQuery("delete from " + formattedTableName).executeUpdate(); //$NON-NLS-1$
-                                } else {
-                                    String referenceTableName = tableResolver.get(reference.getContainingType());
-                                    List<String> fkColumnNames;
-                                    if (reference.getReferencedField() instanceof CompoundFieldMetadata) {
-                                        FieldMetadata[] fields = ((CompoundFieldMetadata) reference.getReferencedField())
-                                                .getFields();
-                                        fkColumnNames = new ArrayList<String>(fields.length);
-                                        for (FieldMetadata field : fields) {
-                                            fkColumnNames.add(tableResolver.get(field, reference.getName()));
-                                        }
+                                if (!reference.isMandatory()) {
+                                    if (reference.isMany()) {
+                                        String formattedTableName = tableResolver.getCollectionTable(reference);
+                                        session.createSQLQuery("delete from " + formattedTableName).executeUpdate(); //$NON-NLS-1$
                                     } else {
-                                        fkColumnNames = Collections.singletonList(tableResolver.get(
-                                                reference.getReferencedField(), reference.getName()));
-                                    }
-                                    for (String fkColumnName : fkColumnNames) {
-                                        session.createSQLQuery(
-                                                "update " + referenceTableName + " set " + fkColumnName + " = NULL").executeUpdate(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                                        String referenceTableName = tableResolver.get(reference.getContainingType());
+                                        List<String> fkColumnNames;
+                                        if (reference.getReferencedField() instanceof CompoundFieldMetadata) {
+                                            FieldMetadata[] fields = ((CompoundFieldMetadata) reference.getReferencedField())
+                                                    .getFields();
+                                            fkColumnNames = new ArrayList<String>(fields.length);
+                                            for (FieldMetadata field : fields) {
+                                                fkColumnNames.add(tableResolver.get(field, reference.getName()));
+                                            }
+                                        } else {
+                                            fkColumnNames = Collections.singletonList(tableResolver.get(
+                                                    reference.getReferencedField(), reference.getName()));
+                                        }
+                                        for (String fkColumnName : fkColumnNames) {
+                                            session.createSQLQuery(
+                                                    "update " + referenceTableName + " set " + fkColumnName + " = NULL").executeUpdate(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                                        }
                                     }
                                 }
                             }
@@ -1178,8 +1215,7 @@ public class HibernateStorage implements Storage {
                                 }
                             }
                             // Delete the type instances
-                            String className = storageClassLoader.getClassFromType(typeToDelete).getName();
-                            session.createQuery("delete from " + className).executeUpdate(); //$NON-NLS-1$
+                            session.createQuery("delete from " + tableResolver.get(typeToDelete)).executeUpdate(); //$NON-NLS-1$
                             // Clean up full text indexes
                             if (dataSource.supportFullText()) {
                                 FullTextSession fullTextSession = Search.getFullTextSession(session);
@@ -1334,6 +1370,9 @@ public class HibernateStorage implements Storage {
             // Contains optimizations (use of full text, disable it...)
             ConfigurableContainsOptimizer containsOptimizer = new ConfigurableContainsOptimizer(dataSource);
             containsOptimizer.optimize(select);
+            // Implicit order by id for databases that need a order by (e.g. Postgres).
+            ImplicitOrderBy implicitOrderBy = new ImplicitOrderBy(dataSource);
+            implicitOrderBy.optimize(select);
             // Other optimizations
             for (Optimizer optimizer : OPTIMIZERS) {
                 optimizer.optimize(select);
@@ -1488,9 +1527,9 @@ public class HibernateStorage implements Storage {
         }
     }
 
-    private static class TableClosureVisitor implements PersistentClassVisitor {
+    private class TableClosureVisitor implements PersistentClassVisitor {
 
-        private static List<String> getTableNames(PersistentClass persistentClass) {
+        private List<String> getTableNames(PersistentClass persistentClass) {
             List<String> orderedTableNames = new LinkedList<String>();
             // Get table names for properties
             Set<String> tableNames = new HashSet<String>();
@@ -1538,7 +1577,7 @@ public class HibernateStorage implements Storage {
             return getTableNames(subclass);
         }
 
-        private static class ValueVisitor implements org.hibernate.mapping.ValueVisitor {
+        private class ValueVisitor implements org.hibernate.mapping.ValueVisitor {
 
             @Override
             public Object accept(Bag bag) {
@@ -1602,12 +1641,12 @@ public class HibernateStorage implements Storage {
 
             @Override
             public Object accept(ManyToOne mto) {
-                return mto.getTable().getName();
+                return configuration.getClassMapping(mto.getReferencedEntityName()).getTable().getName();
             }
 
             @Override
             public Object accept(OneToOne oto) {
-                return oto.getTable().getName();
+                return configuration.getClassMapping(oto.getReferencedEntityName()).getTable().getName();
             }
         }
     }

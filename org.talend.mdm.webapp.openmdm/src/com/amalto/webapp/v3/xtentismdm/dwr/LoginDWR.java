@@ -12,8 +12,8 @@
 // ============================================================================
 package com.amalto.webapp.v3.xtentismdm.dwr;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.servlet.http.HttpSession;
 
@@ -42,7 +42,7 @@ public class LoginDWR {
     }
 
     public String[] getUniverseNames() throws XtentisWebappException {
-        List<String> universeNames = new ArrayList<String>();
+        Set<String> universeNames = new HashSet<String>();
         universeNames.add(HEAD);
         try {
             if (com.amalto.core.util.Util.isEnterprise()) {

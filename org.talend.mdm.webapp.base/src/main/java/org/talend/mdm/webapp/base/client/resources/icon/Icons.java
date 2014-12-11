@@ -32,4 +32,10 @@ public interface Icons extends ClientBundle {
 
     @Source("world_edit.png")
     ImageResource world_edit();
+    
+    @Source("status_valid.png")
+    ImageResource statusValid();
+    
+    @Source("status_invalid.png")
+    ImageResource statusInvalid();
 }

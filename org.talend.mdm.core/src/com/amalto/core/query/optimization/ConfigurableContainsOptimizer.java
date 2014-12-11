@@ -13,9 +13,7 @@ package com.amalto.core.query.optimization;
 import com.amalto.core.query.user.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.talend.mdm.commmon.metadata.ComplexTypeMetadata;
-import org.talend.mdm.commmon.metadata.ReferenceFieldMetadata;
-import org.talend.mdm.commmon.metadata.Types;
+import org.talend.mdm.commmon.metadata.*;
 
 import com.amalto.core.query.user.metadata.GroupSize;
 import com.amalto.core.query.user.metadata.StagingBlockKey;
@@ -68,6 +66,17 @@ public class ConfigurableContainsOptimizer implements Optimizer {
                         if (LOGGER.isDebugEnabled()) {
                             LOGGER.debug("Cannot use '" + containsOptimization + "': query uses full text forbidden predicates.");
                         }
+                    } else if (!select.getTypes().isEmpty()) {
+                        for (ComplexTypeMetadata type : select.getTypes()) {
+                            if (hasMultipleContainedTypeUsages(type)) {
+                                if (LOGGER.isDebugEnabled()) {
+                                    LOGGER.debug("Cannot use '" + containsOptimization
+                                            + "': query includes types with multiple reuses of a reusable type.");
+                                }
+                            } else {
+                                condition = select.getCondition().accept(FULL_TEXT_CONTAINS_OPTIMIZATION);
+                            }
+                        }
                     } else {
                         condition = select.getCondition().accept(FULL_TEXT_CONTAINS_OPTIMIZATION);
                     }
@@ -79,6 +88,21 @@ public class ConfigurableContainsOptimizer implements Optimizer {
             }
             select.setCondition(condition);
         }
+    }
+
+    /**
+     * Checks the entity type for multiple usages of a reusable type. If a type is reused multiple times within entity
+     * Lucene indexes won't be able to generate the right query.
+     * 
+     * @param type An entity {@link org.talend.mdm.commmon.metadata.ComplexTypeMetadata type}.
+     * @return <code>true</code> if <code>type</code> reuses more than once a contained type. <code>false</code>
+     * otherwise or if <code>type</code> is null.
+     */
+    private static boolean hasMultipleContainedTypeUsages(ComplexTypeMetadata type) {
+        if (type == null) {
+            return false;
+        }
+        return type.accept(new ContainedTypeChecker());
     }
 
     private static boolean hasForbiddenFullTextPredicates(Condition condition) {
@@ -348,7 +372,9 @@ public class ConfigurableContainsOptimizer implements Optimizer {
 
         @Override
         public Boolean visit(StringConstant constant) {
-            return !constant.getValue().contains("-"); //$NON-NLS-1$
+            // TMDM-6746: Disable Lucene search when query contains '-'.
+            // TMDM-7969: Disable Lucene search when query contains '/'.
+            return !constant.getValue().contains("-") && !constant.getValue().contains("/"); //$NON-NLS-1$ //$NON-NLS-2
         }
 
         @Override

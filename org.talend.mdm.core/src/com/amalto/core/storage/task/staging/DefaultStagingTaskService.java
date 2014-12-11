@@ -26,6 +26,7 @@ import com.amalto.core.storage.StagingStorage;
 import com.amalto.core.storage.StorageType;
 import com.amalto.core.storage.record.DataRecord;
 import com.amalto.core.storage.task.*;
+import org.apache.log4j.Logger;
 import org.talend.mdm.commmon.metadata.ComplexTypeMetadata;
 import org.talend.mdm.commmon.metadata.MetadataRepository;
 
@@ -50,6 +51,8 @@ public class DefaultStagingTaskService implements StagingTaskServiceDelegate {
     private static final DateFormat userDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss"); //$NON-NLS-1$
 
     private static final Map<String, Task> runningTasks = new HashMap<String, Task>();
+
+    private static final Logger LOGGER = Logger.getLogger(DefaultStagingTaskService.class);
 
     public DefaultStagingTaskService() {
         dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
@@ -167,7 +170,7 @@ public class DefaultStagingTaskService implements StagingTaskServiceDelegate {
             qb.limit(size);
         }
         qb.orderBy(executionType.getField("start_time"), OrderBy.Direction.ASC); //$NON-NLS-1$
-        List<String> taskIds;
+        List<String> taskIds = Collections.emptyList();
         try {
             staging.begin();
             StorageResults results = staging.fetch(qb.getSelect());
@@ -185,8 +188,17 @@ public class DefaultStagingTaskService implements StagingTaskServiceDelegate {
             }
             staging.commit();
         } catch (Exception e) {
-            staging.rollback();
-            throw new RuntimeException(e);
+            try {
+                staging.rollback();
+            } catch (Exception rollbackException) {
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Unable to rollback transaction.", rollbackException);
+                }
+            }
+            // TMDM-7970: Ignore all storage related errors for statistics
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Could not get staging storage execution statistics.", e);
+            }
         }
         return taskIds;
     }
@@ -274,8 +286,17 @@ public class DefaultStagingTaskService implements StagingTaskServiceDelegate {
             }
             staging.commit();
         } catch (Exception e) {
-            staging.rollback();
-            throw new RuntimeException(e);
+            try {
+                staging.rollback();
+            } catch (Exception rollbackException) {
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Unable to rollback transaction.", rollbackException);
+                }
+            }
+            // TMDM-7970: Ignore all storage related errors for statistics
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Could not get staging storage execution statistics.", e);
+            }
         }
         return status;
     }

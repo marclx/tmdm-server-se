@@ -90,6 +90,25 @@
         </xsd:sequence>
     </xsd:complexType>
 
+    <xsd:element name="Customer">
+        <xsd:complexType>
+            <xsd:sequence>
+                <xsd:element name="id" type="xsd:string"/>
+                <xsd:element name="firstname" type="xsd:string"/>
+                <xsd:element name="middlename" type="xsd:string"/>
+                <xsd:element name="lastname" type="xsd:string"/>
+                <xsd:element minOccurs="0" name="Available" type="xsd:boolean"/>
+                <xsd:element maxOccurs="1" name="address1" type="Address"/>
+                <xsd:element maxOccurs="1" name="address2" type="Address"/>
+            </xsd:sequence>
+        </xsd:complexType>
+        <xsd:unique name="Customer">
+            <xsd:selector xpath="."/>
+            <xsd:field xpath="id"/>
+        </xsd:unique>
+    </xsd:element>
+
+
     <xsd:simpleType name="PersonStatus">
         <xsd:restriction base="xsd:string">
             <xsd:enumeration value="Customer"/>
@@ -1395,6 +1414,50 @@
                     <xsd:appinfo source="X_ForeignKey_NotSep">true</xsd:appinfo>
                     <xsd:appinfo source="X_Write">Demo_Manager</xsd:appinfo>
                     <xsd:appinfo source="X_Retrieve_FKinfos">true</xsd:appinfo>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:all>
+    </xsd:complexType>
+    <xsd:element name="ContainedEntityC">
+        <xsd:annotation>
+            <xsd:appinfo source="X_Write">Demo_Manager</xsd:appinfo>
+        </xsd:annotation>
+        <xsd:complexType>
+            <xsd:all>
+                <xsd:element maxOccurs="1" minOccurs="1" name="Cid" type="xsd:string">
+                    <xsd:annotation>
+                        <xsd:appinfo source="X_Write">Demo_Manager</xsd:appinfo>
+                    </xsd:annotation>
+                </xsd:element>
+                <xsd:element maxOccurs="1" minOccurs="0" name="FK_to_B" type="xsd:string">
+                    <xsd:annotation>
+                        <xsd:appinfo source="X_ForeignKey">ContainedEntityB/id</xsd:appinfo>
+                        <xsd:appinfo source="X_ForeignKey_NotSep">true</xsd:appinfo>
+                        <xsd:appinfo source="X_Retrieve_FKinfos">true</xsd:appinfo>
+                        <xsd:appinfo source="X_Write">Demo_Manager</xsd:appinfo>
+                    </xsd:annotation>
+                </xsd:element>
+                <xsd:element maxOccurs="1" minOccurs="0" name="CsubType" type="CsubType">
+                    <xsd:annotation>
+                        <xsd:appinfo source="X_Write">Demo_Manager</xsd:appinfo>
+                        <xsd:appinfo source="X_AutoExpand">false</xsd:appinfo>
+                    </xsd:annotation>
+                </xsd:element>
+            </xsd:all>
+        </xsd:complexType>
+        <xsd:unique name="ContainedEntityC">
+            <xsd:selector xpath="."/>
+            <xsd:field xpath="Cid"/>
+        </xsd:unique>
+    </xsd:element>  
+    <xsd:complexType name="CsubType">
+        <xsd:all>
+            <xsd:element maxOccurs="1" minOccurs="1" name="Sub_FK_to_B" type="xsd:string">
+                <xsd:annotation>
+                    <xsd:appinfo source="X_ForeignKey">ContainedEntityB/id</xsd:appinfo>
+                    <xsd:appinfo source="X_ForeignKey_NotSep">true</xsd:appinfo>
+                    <xsd:appinfo source="X_Retrieve_FKinfos">true</xsd:appinfo>
+                    <xsd:appinfo source="X_Write">Demo_Manager</xsd:appinfo>
                 </xsd:annotation>
             </xsd:element>
         </xsd:all>

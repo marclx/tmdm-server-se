@@ -19,7 +19,6 @@ import org.apache.log4j.Logger;
 import org.exolab.castor.xml.Marshaller;
 import org.exolab.castor.xml.Unmarshaller;
 import org.talend.mdm.commmon.util.bean.ItemCacheKey;
-import org.talend.mdm.commmon.util.core.EDBType;
 import org.talend.mdm.commmon.util.core.MDMConfiguration;
 import org.talend.mdm.commmon.util.datamodel.management.BusinessConcept;
 import org.talend.mdm.commmon.util.datamodel.management.DataModelID;
@@ -308,7 +307,8 @@ public class DroppedItemPOJO implements Serializable {
                     refItemPOJOPK = new ItemPOJOPK(new DataClusterPOJOPK(uidValues[1]), uidValues[2], Arrays.copyOfRange(
                             uidValues, 3, uidValues.length));
                 }
-                DroppedItemPOJOPK droppedItemPOJOPK = new DroppedItemPOJOPK(uidValues[0], refItemPOJOPK, "/"); //$NON-NLS-1$
+                // set revision id as ""
+                DroppedItemPOJOPK droppedItemPOJOPK = new DroppedItemPOJOPK("", refItemPOJOPK, "/"); //$NON-NLS-1$ //$NON-NLS-2$
                 if (regex != null) {
                     if (uid.matches(regex)) {
                         list.add(droppedItemPOJOPK);

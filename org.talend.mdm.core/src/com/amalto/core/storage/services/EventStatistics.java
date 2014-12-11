@@ -12,14 +12,8 @@ package com.amalto.core.storage.services;
 
 import static com.amalto.core.query.user.UserQueryBuilder.*;
 
-import java.io.StringReader;
 import java.io.StringWriter;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -29,21 +23,13 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.amalto.core.query.user.UserQueryBuilder;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONWriter;
 import org.talend.mdm.commmon.metadata.ComplexTypeMetadata;
 import org.talend.mdm.commmon.metadata.FieldMetadata;
 import org.talend.mdm.commmon.metadata.MetadataRepository;
-import org.xml.sax.Attributes;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.DefaultHandler;
-import org.xml.sax.helpers.XMLReaderFactory;
 
-import com.amalto.core.query.user.Expression;
 import com.amalto.core.server.ServerContext;
 import com.amalto.core.server.StorageAdmin;
 import com.amalto.core.storage.Storage;
@@ -58,7 +44,7 @@ public class EventStatistics {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getEventStatistics(@QueryParam("timeframe") Long timeFrame) { //$NON-NLS-1$
+    public Response getEventStatistics(@QueryParam("timeframe") Long timeFrame, @QueryParam("top") Integer top) { //$NON-NLS-1$ //$NON-NLS-2
         StorageAdmin storageAdmin = ServerContext.INSTANCE.get().getStorageAdmin();
         Storage system = storageAdmin.get(StorageAdmin.SYSTEM_STORAGE, StorageType.SYSTEM, null);
         if (system == null) {
@@ -95,39 +81,63 @@ public class EventStatistics {
                 {
                     // Failed events
                     ComplexTypeMetadata failedRoutingOrder = repository.getComplexType("failed-routing-order-v2-pOJO"); //$NON-NLS-1$
-                    writeTo(system, triggerNameToParameter, failedRoutingOrder, writer, timeFrame, "failed"); //$NON-NLS-1$
+                    writeTo(system, triggerNameToParameter, failedRoutingOrder, writer, timeFrame, "failed", top); //$NON-NLS-1$
                     // Completed events
                     ComplexTypeMetadata completedRoutingOrder = repository.getComplexType("completed-routing-order-v2-pOJO"); //$NON-NLS-1$
-                    writeTo(system, triggerNameToParameter, completedRoutingOrder, writer, timeFrame,  "completed"); //$NON-NLS-1$
+                    writeTo(system, triggerNameToParameter, completedRoutingOrder, writer, timeFrame,  "completed", top); //$NON-NLS-1$
                 }
                 writer.endArray();
             }
             writer.endObject();
             system.commit();
-        } catch (JSONException e) {
+            return Response.ok().type(MediaType.APPLICATION_JSON_TYPE).entity(stringWriter.toString())
+                    .header("Access-Control-Allow-Origin", "*").build(); //$NON-NLS-1$ //$NON-NLS-2$
+        } catch (Exception e) {
+            try {
+                system.rollback();
+            } catch (Exception rollbackException) {
+                LOGGER.debug("Unable to rollback transaction.", e);
+            }
             if (system.isClosed()) {
                 // TMDM-7749: Ignore errors when storage is closed.
                 if (LOGGER.isDebugEnabled()) {
                     LOGGER.debug("Exception occurred due to closed storage.", e);
                 }
-                return Response.status(Response.Status.NO_CONTENT).build();
             } else {
-                system.rollback();
-                throw new RuntimeException("Could not provide statistics.", e);
+                // TMDM-7970: Ignore all storage related errors.
+                LOGGER.warn("Unable to compute statistics.");
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Unable to compute statistics due to storage exception.", e);
+                }
             }
+            return Response.status(Response.Status.NO_CONTENT).build();
         }
-        return Response.ok().type(MediaType.APPLICATION_JSON_TYPE).entity(stringWriter.toString())
-                .header("Access-Control-Allow-Origin", "*").build(); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     private void writeTo(Storage system, Map<String, String> triggerNameToParameter, ComplexTypeMetadata routingOrderType,
-            JSONWriter writer, Long timeFrame, String categoryName) throws JSONException {
+                         JSONWriter writer, Long timeFrame, String categoryName, Integer top) throws JSONException {
         FieldMetadata parameters = routingOrderType.getField("service-parameters"); //$NON-NLS-1$
         writer.object().key(categoryName);
         {
             writer.array();
             {
                 try {
+                    // Build statistics
+                    SortedSet<EventEntry> entries = new TreeSet<EventEntry>(new Comparator<EventEntry>() {
+
+                        @Override
+                        public int compare(EventEntry o1, EventEntry o2) {
+                            int diff = (int) (o2.count - o1.count);
+                            if (diff == 0) {
+                                if (o1.eventName.equals(o2.eventName)) {
+                                    return 0;
+                                } else {
+                                    return -1;
+                                }
+                            }
+                            return diff;
+                        }
+                    });
                     for (Map.Entry<String, String> entry : triggerNameToParameter.entrySet()) {
                         String key = entry.getKey();
                         UserQueryBuilder qb = from(routingOrderType).select(count()).where(eq(parameters, entry.getValue()))
@@ -138,10 +148,20 @@ public class EventStatistics {
                         }
                         StorageResults results = system.fetch(qb.getSelect());
                         try {
-                            writer.object().key(key).value(results.iterator().next().get("count")).endObject(); //$NON-NLS-1$
+                            EventEntry eventEntry = new EventEntry();
+                            eventEntry.eventName = key;
+                            eventEntry.count = (Long) results.iterator().next().get("count"); //$NON-NLS-1
+                            entries.add(eventEntry);
                         } finally {
                             results.close();
                         }
+                    }
+                    // Returns all events or the n top one (query parameter).
+                    Iterator<EventEntry> iterator = entries.iterator();
+                    int limit = top == null || top <= 0 ? Integer.MAX_VALUE : top;
+                    for (int i = 0; i < limit && iterator.hasNext(); i++) {
+                        EventEntry entry = iterator.next();
+                        writer.object().key(entry.eventName).value(entry.count).endObject();
                     }
                 } catch (Exception e) {
                     throw new RuntimeException("Could not build event statistics for '" + categoryName + "' events", e);
@@ -150,5 +170,13 @@ public class EventStatistics {
             writer.endArray();
         }
         writer.endObject();
+    }
+
+    // Object to store type statistics before building JSON output
+    class EventEntry {
+
+        String eventName;
+
+        long count;
     }
 }

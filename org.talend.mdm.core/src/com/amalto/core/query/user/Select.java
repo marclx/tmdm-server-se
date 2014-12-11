@@ -13,8 +13,7 @@ package com.amalto.core.query.user;
 
 import org.talend.mdm.commmon.metadata.ComplexTypeMetadata;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 /**
  *
@@ -34,6 +33,8 @@ public class Select implements Expression {
     private Condition condition;
 
     private String revisionId = "1"; //$NON-NLS-1$
+
+    private boolean isProjection;
 
     private boolean forUpdate = false;
 
@@ -114,6 +115,20 @@ public class Select implements Expression {
         }
         if (condition == UserQueryHelper.TRUE) {
             condition = null;
+        }
+        if (selectedFields.isEmpty()) {
+            isProjection = false;
+        }
+        Set<OrderBy> uniqueOrderBy = new HashSet<OrderBy>();
+        for (OrderBy current : orderBy) {
+            uniqueOrderBy.add(current);
+        }
+        Iterator<OrderBy> iterator = orderBy.iterator();
+        while (iterator.hasNext()) {
+            OrderBy next = iterator.next();
+            if (!uniqueOrderBy.remove(next)) {
+                iterator.remove();
+            }
         }
         return this;
     }

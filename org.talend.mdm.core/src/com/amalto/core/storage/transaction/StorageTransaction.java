@@ -21,7 +21,12 @@ import com.amalto.core.storage.Storage;
  */
 public abstract class StorageTransaction {
 
+    private final Object[] lockChange = new Object[0];
+
     protected boolean isAutonomous;
+
+    // Keep it private, use getLockStrategy() in sub classes to ensure correct synchronization.
+    private Transaction.LockStrategy lockStrategy = Transaction.LockStrategy.NO_LOCK;
 
     /**
      * @return The {@link Storage} managed by this storage transaction.
@@ -88,4 +93,16 @@ public abstract class StorageTransaction {
      * rollback was called to revert all commit changes.
      */
     public abstract boolean hasFailed();
+
+    public void setLockStrategy(Transaction.LockStrategy lockStrategy) {
+        synchronized (lockChange) {
+            this.lockStrategy = lockStrategy;
+        }
+    }
+
+    protected Transaction.LockStrategy getLockStrategy() {
+        synchronized (lockChange) {
+            return lockStrategy;
+        }
+    }
 }

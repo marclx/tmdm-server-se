@@ -18,6 +18,12 @@
     </servlet>
     
     <servlet>
+        <servlet-name>ExportingServlet</servlet-name>
+        <display-name>ExportingServlet</display-name>
+        <servlet-class>org.talend.mdm.webapp.browserecords.server.servlet.ExportingServlet</servlet-class>
+    </servlet> 
+    
+    <servlet>
         <servlet-name>browserecordsServlet</servlet-name>
         <servlet-class>org.talend.mdm.webapp.general.gwt.ProxyGWTServiceImpl</servlet-class>
     </servlet>
@@ -59,6 +65,11 @@
     <servlet-mapping>
         <servlet-name>dwr-invoker</servlet-name>
         <url-pattern>/secure/dwr/*</url-pattern>
+    </servlet-mapping>
+    
+    <servlet-mapping>
+        <servlet-name>ExportingServlet</servlet-name>
+        <url-pattern>/secure/ExportingServlet</url-pattern>
     </servlet-mapping>
     
     <servlet-mapping>

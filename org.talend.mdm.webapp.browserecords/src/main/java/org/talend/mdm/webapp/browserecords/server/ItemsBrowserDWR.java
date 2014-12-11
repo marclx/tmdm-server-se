@@ -25,15 +25,15 @@ import org.apache.commons.lang.StringUtils;
 import org.talend.mdm.commmon.util.datamodel.management.BusinessConcept;
 import org.talend.mdm.commmon.util.datamodel.management.ReusableType;
 
+import com.amalto.core.webservice.WSDataClusterPK;
+import com.amalto.core.webservice.WSGetItemPKsByCriteria;
+import com.amalto.core.webservice.WSGetItemPKsByFullCriteria;
+import com.amalto.core.webservice.WSItemPKsByCriteriaResponse;
 import com.amalto.webapp.core.bean.Configuration;
 import com.amalto.webapp.core.bean.ListRange;
 import com.amalto.webapp.core.dmagent.SchemaWebAgent;
 import com.amalto.webapp.core.json.JSONObject;
 import com.amalto.webapp.core.util.Util;
-import com.amalto.core.webservice.WSDataClusterPK;
-import com.amalto.core.webservice.WSGetItemPKsByCriteria;
-import com.amalto.core.webservice.WSGetItemPKsByFullCriteria;
-import com.amalto.core.webservice.WSItemPKsByCriteriaResponse;
 
 /**
  * cluster
@@ -89,7 +89,7 @@ public class ItemsBrowserDWR {
         businessConcept.load();
         Map<String, String> foreignKeyMap = businessConcept.getForeignKeyMap();
         Map<String, String> inheritanceForeignKeyMap = businessConcept.getInheritanceForeignKeyMap();
-        
+
         Set<String> foreignKeyXpath = foreignKeyMap.keySet();
         Set<String> xpathes = new HashSet<String>();
 
@@ -108,14 +108,15 @@ public class ItemsBrowserDWR {
                 Map<String, String> fks = SchemaWebAgent.getInstance().getReferenceEntities(reusableType, dataObject);
                 Collection<String> fkPaths = fks != null ? fks.keySet() : null;
                 for (String fkpath : fkPaths) {
-                    if (fks.get(fkpath).indexOf(dataObject) != -1 && ! resolvedInInheritanceMapping(fkpath, fks.get(fkpath), inheritanceForeignKeyMap)) {
+                    if (fks.get(fkpath).indexOf(dataObject) != -1
+                            && !resolvedInInheritanceMapping(fkpath, fks.get(fkpath), inheritanceForeignKeyMap)) {
                         xpathes.add(fkpath);
                     }
                 }
             }
         }
 
-        //process foreign key obtained through inheritance
+        // process foreign key obtained through inheritance
         if (inheritanceForeignKeyMap.size() > 0) {
             Set<String> keySet = inheritanceForeignKeyMap.keySet();
             String dataObjectPath = null;
@@ -128,7 +129,6 @@ public class ItemsBrowserDWR {
         }
 
         StringBuilder sb = new StringBuilder();
-        sb.append(keys);
         sb.append("$");//$NON-NLS-1$
         sb.append(joinSet(xpathes, ","));//$NON-NLS-1$
         sb.append("$");//$NON-NLS-1$
@@ -136,7 +136,7 @@ public class ItemsBrowserDWR {
 
         WSItemPKsByCriteriaResponse results = Util.getPort().getItemPKsByFullCriteria(
                 new WSGetItemPKsByFullCriteria(new WSGetItemPKsByCriteria(wsDataClusterPK, entity, contentWords, sb.toString(),
-                        fromDate, toDate, start, limit), false));
+                        keys, fromDate, toDate, start, limit), false));
 
         Map<String, Object>[] data = new Map[results.getResults().length - 1];
         int totalSize = 0;
@@ -161,12 +161,12 @@ public class ItemsBrowserDWR {
     }
 
     private boolean resolvedInInheritanceMapping(String fkpath, String target, Map<String, String> inheritanceForeignKeyMap) {
-        if (inheritanceForeignKeyMap.isEmpty() || ! inheritanceForeignKeyMap.containsValue(target) ) {
+        if (inheritanceForeignKeyMap.isEmpty() || !inheritanceForeignKeyMap.containsValue(target)) {
             return false;
         }
-        for (Entry<String, String> current :inheritanceForeignKeyMap.entrySet() ){
+        for (Entry<String, String> current : inheritanceForeignKeyMap.entrySet()) {
             String fkName = StringUtils.substringAfterLast(fkpath, "/"); //$NON-NLS-1$
-            if (target.equals( current.getValue()) && current.getKey().endsWith(fkName)) {
+            if (target.equals(current.getValue()) && current.getKey().endsWith(fkName)) {
                 return true;
             }
         }

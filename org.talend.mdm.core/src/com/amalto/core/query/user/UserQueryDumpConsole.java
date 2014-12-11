@@ -667,7 +667,7 @@ public class UserQueryDumpConsole implements Visitor<Void> {
         print("[ORDER BY]"); //$NON-NLS-1$
         increaseIndent();
         {
-            orderBy.getField().accept(this);
+            orderBy.getExpression().accept(this);
             print("Direction: " + orderBy.getDirection()); //$NON-NLS-1$
         }
         decreaseIndent();
@@ -691,6 +691,13 @@ public class UserQueryDumpConsole implements Visitor<Void> {
 
     public Void visit(Count count) {
         print("[COUNT]"); //$NON-NLS-1$
+        if (count.getExpression() != null) {
+            increaseIndent();
+            {
+                count.getExpression().accept(this);
+            }
+            decreaseIndent();
+        }
         return null;
     }
 

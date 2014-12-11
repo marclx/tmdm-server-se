@@ -104,7 +104,7 @@ class ScatteredTypeMapping extends TypeMapping {
                     Object value = to.get(getDatabase(field).getName());
                     List<Wrapper> existingValue = (List<Wrapper>) value;
                     if (dataRecords != null) {
-                        if (existingValue != null) {
+                        if (existingValue != null && existingValue instanceof PersistentList) {
                             ((PersistentList) existingValue).forceInitialization();
                         }
                         List<Wrapper> objects = existingValue == null ? new ArrayList<Wrapper>(dataRecords.size())

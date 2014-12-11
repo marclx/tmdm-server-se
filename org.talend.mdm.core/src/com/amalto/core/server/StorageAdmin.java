@@ -99,7 +99,8 @@ public interface StorageAdmin {
     /**
      * @param storageName A {@link com.amalto.core.storage.Storage} name.
      * @param type        The storage {@link com.amalto.core.storage.StorageType type} (Staging, Master...).
-     * @param revisionId  A revision id.  @return A previously created {@link Storage} or <code>null</code> if no storage was previously created.
+     * @param revisionId  A revision id.
+     * @return A previously created {@link Storage} or <code>null</code> if no storage was previously created.
      * @see #create(String, String, com.amalto.core.storage.StorageType, String, String)
      */
     Storage get(String storageName, StorageType type, String revisionId);

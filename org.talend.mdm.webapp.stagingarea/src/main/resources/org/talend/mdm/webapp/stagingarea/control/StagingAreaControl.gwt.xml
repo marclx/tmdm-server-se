@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module rename-to='stagingarea'>
+    <inherits name="org.talend.mdm.webapp.base.BASE" />
+    <inherits name="org.talend.mdm.webapp.base.REST" />
+    <entry-point class="org.talend.mdm.webapp.stagingarea.control.client.StagingAreaControl" />
+    <source path='client' />
+    <source path='shared' />
+    <source path='model' />
+</module>

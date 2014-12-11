@@ -480,6 +480,7 @@ public class XConverter {
         ws.setName(storedProcedurePOJO.getName());
         ws.setDescription(storedProcedurePOJO.getDescription());
         ws.setProcedure(storedProcedurePOJO.getProcedure());
+        ws.setRefreshCache(storedProcedurePOJO.isRefreshCache());
         return ws;
     }
 
@@ -488,6 +489,7 @@ public class XConverter {
         pojo.setName(wsStoredProcedure.getName());
         pojo.setDescription(wsStoredProcedure.getDescription());
         pojo.setProcedure(wsStoredProcedure.getProcedure());
+        pojo.setRefreshCache(wsStoredProcedure.getRefreshCache() == null ? false : wsStoredProcedure.getRefreshCache());
         return pojo;
     }
 

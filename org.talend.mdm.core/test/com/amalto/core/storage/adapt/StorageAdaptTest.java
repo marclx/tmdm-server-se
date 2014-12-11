@@ -73,13 +73,13 @@ public class StorageAdaptTest extends TestCase {
         Storage storage = new HibernateStorage("Test", StorageType.MASTER);
         storage.init(dataSource);
         MetadataRepository repository = new MetadataRepository();
-        repository.load(CompareTest.class.getResourceAsStream("schema1_1.xsd"));
+        repository.load(StorageAdaptTest.class.getResourceAsStream("schema1_1.xsd"));
         storage.prepare(repository, true);
         // Ensure name column exists
         performAssert1(dataSource, true, true);
         // Actual test
         MetadataRepository newRepository = new MetadataRepository();
-        newRepository.load(CompareTest.class.getResourceAsStream("schema1_2.xsd"));
+        newRepository.load(StorageAdaptTest.class.getResourceAsStream("schema1_2.xsd"));
         storage.adapt(newRepository, true);
         // Test expected schema update
         performAssert1(dataSource, false, false);
@@ -123,7 +123,50 @@ public class StorageAdaptTest extends TestCase {
             }
         } finally {
             statement.close();
+            connection.close();
         }
-
     }
+
+    public void test2() throws Exception {
+        // Test preparation
+        DataSourceDefinition dataSource = ServerContext.INSTANCE.get().getDefinition("H2-DS3", STORAGE_NAME);
+        Storage storage = new HibernateStorage("Test", StorageType.MASTER);
+        storage.init(dataSource);
+        MetadataRepository repository = new MetadataRepository();
+        repository.load(StorageAdaptTest.class.getResourceAsStream("schema2_1.xsd"));
+        storage.prepare(repository, true);
+        // Ensure name column exists
+        performAssert2(dataSource, true);
+        // Actual test
+        MetadataRepository newRepository = new MetadataRepository();
+        newRepository.load(StorageAdaptTest.class.getResourceAsStream("schema2_2.xsd"));
+        storage.adapt(newRepository, true);
+        // Test expected schema update
+        performAssert2(dataSource, false);
+        storage.close(true);
+    }
+
+    private void performAssert2(DataSourceDefinition dataSource, boolean roadElement)
+            throws SQLException {
+        DataSource master = dataSource.getMaster();
+        assertTrue(master instanceof RDBMSDataSource);
+        RDBMSDataSource rdbmsDataSource = (RDBMSDataSource) master;
+        assertEquals(RDBMSDataSource.DataSourceDialect.H2, rdbmsDataSource.getDialectName());
+        Connection connection = DriverManager.getConnection(rdbmsDataSource.getConnectionURL());
+        Statement statement = connection.createStatement();
+        try {
+            // Chinese address table asserts
+            ResultSet resultSet = statement.executeQuery("SELECT * FROM X_ChineseAddress");
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            boolean hasRoad = false;
+            for (int i = 1; i <= metaData.getColumnCount(); i++) {
+                hasRoad |= "x_road".equalsIgnoreCase(metaData.getColumnName(i));
+            }
+            assertSame(roadElement, hasRoad);
+        } finally {
+            statement.close();
+            connection.close();
+        }
+    }
+
 }

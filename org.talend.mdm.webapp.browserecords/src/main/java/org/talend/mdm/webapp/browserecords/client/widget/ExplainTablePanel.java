@@ -32,6 +32,7 @@ import com.extjs.gxt.ui.client.mvc.Dispatcher;
 import com.extjs.gxt.ui.client.store.ListStore;
 import com.extjs.gxt.ui.client.store.TreeStore;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
+import com.extjs.gxt.ui.client.widget.Label;
 import com.extjs.gxt.ui.client.widget.Window;
 import com.extjs.gxt.ui.client.widget.grid.ColumnConfig;
 import com.extjs.gxt.ui.client.widget.grid.ColumnData;
@@ -102,8 +103,36 @@ public class ExplainTablePanel extends ContentPanel {
                 .explainResult_confidence_header(), 50);
         columnList.add(confidenceColumn);
         ColumnConfig scoreColumn = new ColumnConfig(StagingConstant.MATCH_SCORE, MessagesFactory.getMessages()
-                .explainResult_attrscore_header(), 80);
+                .explainResult_score_header(), 80);
+        scoreColumn.setRenderer(new GridCellRenderer<ModelData>() {
+
+            @Override
+            public Object render(ModelData model, String property, ColumnData config, int rowIndex, int colIndex,
+                    ListStore<ModelData> store, Grid<ModelData> grid) {
+                String score = model.get(StagingConstant.MATCH_SCORE);
+                String exactScore = model.get(StagingConstant.MATCH_EXACT_SCORE);
+                Label scoreLabel = new Label(score);
+                scoreLabel.setToolTip(exactScore);
+                return scoreLabel;
+            }
+
+        });
         columnList.add(scoreColumn);
+        ColumnConfig fieldScoreColumn = new ColumnConfig(StagingConstant.MATCH_FIELD_SCORE, MessagesFactory.getMessages()
+                .explainResult_field_score_header(), 80);
+        fieldScoreColumn.setRenderer(new GridCellRenderer<ModelData>() {
+
+            @Override
+            public Object render(ModelData model, String property, ColumnData config, int rowIndex, int colIndex,
+                    ListStore<ModelData> store, Grid<ModelData> grid) {
+                String score = model.get(StagingConstant.MATCH_FIELD_SCORE);
+                String exactScore = model.get(StagingConstant.MATCH_EXACT_FIELD_SCORE);
+                Label scoreLabel = new Label(score);
+                scoreLabel.setToolTip(exactScore);
+                return scoreLabel;
+            }
+        });
+        columnList.add(fieldScoreColumn);
         ColumnConfig detailsColumn = new ColumnConfig(StagingConstant.MATCH_DETAILS, MessagesFactory.getMessages()
                 .explainResult_details_header(), 30);
         detailsColumn.setRenderer(new GridCellRenderer<ModelData>() {
@@ -111,7 +140,7 @@ public class ExplainTablePanel extends ContentPanel {
             @Override
             public Object render(final ModelData model, String property, ColumnData config, int rowIndex, int colIndex,
                     ListStore<ModelData> store, Grid<ModelData> grid) {
-                if ((Boolean)(model.get(StagingConstant.MATCH_IS_GROUP))) {
+                if ((Boolean) (model.get(StagingConstant.MATCH_IS_GROUP))) {
                     Image detailButton = new Image(Icons.INSTANCE.link_go());
                     detailButton.addClickHandler(new ClickHandler() {
 

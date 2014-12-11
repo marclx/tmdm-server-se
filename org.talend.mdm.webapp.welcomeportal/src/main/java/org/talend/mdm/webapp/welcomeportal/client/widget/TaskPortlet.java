@@ -305,19 +305,22 @@ public class TaskPortlet extends BasePortlet {
     }
 
     private String buildMessageForWorkflowTasks(int num) {
-        StringBuilder mseeage = new StringBuilder("<IMG SRC=\"/talendmdm/secure/img/genericUI/task-list-icon.png\"/>&nbsp;"); //$NON-NLS-1$                                
-        mseeage.append(MessagesFactory.getMessages().waiting_task_prefix());
-        mseeage.append("&nbsp;<b style=\"color: red;\">" + num + "</b>&nbsp;"); //$NON-NLS-1$ //$NON-NLS-2$
-        mseeage.append(MessagesFactory.getMessages().waiting_workflowtask_suffix());
+        StringBuilder message = new StringBuilder("<IMG SRC=\"/talendmdm/secure/img/genericUI/task-list-icon.png\"/>&nbsp;"); //$NON-NLS-1$                                
+        message.append(MessagesFactory.getMessages().waiting_task_prefix());
+        message.append("&nbsp;<b style=\"color: red;\">"); //$NON-NLS-1$
+        message.append(num);
+        message.append("</b>&nbsp;"); //$NON-NLS-1$
+        message.append(MessagesFactory.getMessages().waiting_workflowtask_suffix());
 
-        return mseeage.toString();
+        return message.toString();
     }
 
     private String buildMessageForDSCTasks(Map<String, Integer> dscTasks) {
         StringBuilder message = new StringBuilder("<IMG SRC=\"/talendmdm/secure/img/genericUI/task-list-icon.png\"/>&nbsp;"); //$NON-NLS-1$                                
         message.append(MessagesFactory.getMessages().waiting_task_prefix());
-        message.append("&nbsp;<b style=\"color: red;\">" + dscTasks.get(DSCTASKTYPE_NEW) + "&nbsp;new</b>&nbsp;and"); //$NON-NLS-1$ //$NON-NLS-2$
-        message.append("&nbsp;<b style=\"color: red;\">" + dscTasks.get(DSCTASKTYPE_PENDING) + "&nbsp;pending</b>&nbsp;"); //$NON-NLS-1$ //$NON-NLS-2$
+        message.append("&nbsp;<b style=\"color: red;\">"); //$NON-NLS-1$
+        message.append(MessagesFactory.getMessages().waiting_dsctask(dscTasks.get(DSCTASKTYPE_NEW), dscTasks.get(DSCTASKTYPE_PENDING)));
+        message.append("</b>&nbsp;"); //$NON-NLS-1$
         message.append(MessagesFactory.getMessages().waiting_dsctask_suffix());
 
         return message.toString();

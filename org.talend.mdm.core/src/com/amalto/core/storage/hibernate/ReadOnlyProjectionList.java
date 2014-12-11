@@ -109,4 +109,8 @@ class ReadOnlyProjectionList extends ProjectionList {
     public boolean isGrouped() {
         return delegate.isGrouped();
     }
+
+    public ProjectionList inner() {
+        return delegate;
+    }
 }

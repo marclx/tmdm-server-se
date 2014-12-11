@@ -54,7 +54,7 @@ public class MultiTypeStrategy extends VisitorAdapter<StorageResults> {
             UserQueryBuilder qb = UserQueryBuilder.from(type);
             qb.where(select.getCondition()); // TODO Would be better to ensure condition applies to type.
             for (OrderBy current : select.getOrderBy()) {
-                qb.orderBy(current.getField(), current.getDirection());
+                qb.orderBy(current.getExpression(), current.getDirection());
             }
             StorageResults dataRecords = storage.fetch(qb.getSelect()); // Expects an active transaction here
             try {

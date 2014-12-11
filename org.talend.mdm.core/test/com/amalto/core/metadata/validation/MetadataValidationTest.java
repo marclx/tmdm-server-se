@@ -606,6 +606,15 @@ public class MetadataValidationTest extends TestCase {
         assertEquals(0, handler.getWarningCount());
         assertFalse(handler.getLineNumbers().contains(null));
     }
+
+    public void testUnusedType3() throws Exception {
+        MetadataRepository repository = new MetadataRepository();
+        InputStream resourceAsStream = this.getClass().getResourceAsStream("UnusedType3_0.1.xsd");
+        TestValidationHandler handler = new TestValidationHandler();
+        repository.load(resourceAsStream, handler);
+        assertEquals(0, handler.getWarningCount());
+        assertFalse(handler.getLineNumbers().contains(null));
+    }
     
     public void testForeignKeyFilter() throws Exception {
         MetadataRepository repository = new MetadataRepository();

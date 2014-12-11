@@ -19,6 +19,7 @@ import org.talend.mdm.webapp.base.client.model.BasePagingLoadConfigImpl;
 import org.talend.mdm.webapp.base.client.model.ForeignKeyBean;
 import org.talend.mdm.webapp.base.client.model.ItemBaseModel;
 import org.talend.mdm.webapp.base.client.model.ItemBasePageLoadResult;
+import org.talend.mdm.webapp.base.client.model.ItemResult;
 import org.talend.mdm.webapp.base.shared.EntityModel;
 import org.talend.mdm.webapp.base.shared.TypeModel;
 import org.talend.mdm.webapp.browserecords.client.model.ColumnTreeLayoutModel;
@@ -27,7 +28,6 @@ import org.talend.mdm.webapp.browserecords.client.model.ForeignKeyModel;
 import org.talend.mdm.webapp.browserecords.client.model.FormatModel;
 import org.talend.mdm.webapp.browserecords.client.model.ItemBean;
 import org.talend.mdm.webapp.browserecords.client.model.ItemNodeModel;
-import org.talend.mdm.webapp.browserecords.client.model.ItemResult;
 import org.talend.mdm.webapp.browserecords.client.model.QueryModel;
 import org.talend.mdm.webapp.browserecords.client.model.Restriction;
 import org.talend.mdm.webapp.browserecords.client.model.UpdateItemModel;
@@ -63,7 +63,7 @@ public interface BrowseRecordsServiceAsync {
 
     void getView(String viewPk, String language, AsyncCallback<ViewBean> callback);
 
-    void deleteItemBeans(List<ItemBean> items, boolean override, String language, AsyncCallback<List<String>> callback);
+    void deleteItemBeans(List<ItemBean> items, boolean override, String language, AsyncCallback<List<ItemResult>> callback);
 
     void checkFKIntegrity(List<ItemBean> selectedItems, AsyncCallback<Map<ItemBean, FKIntegrityResult>> asyncCallback);
 
@@ -126,7 +126,7 @@ public interface BrowseRecordsServiceAsync {
 
     void isItemModifiedByOthers(ItemBean itemBean, AsyncCallback<Boolean> callback);
 
-    void updateItem(String concept, String ids, Map<String, String> changedNodes, String xml, String language,
+    void updateItem(String concept, String ids, Map<String, String> changedNodes, String xml, EntityModel entityModel, String language,
             AsyncCallback<ItemResult> callback);
 
     void updateItems(List<UpdateItemModel> updateItems, String language, AsyncCallback<List<ItemResult>> callback);
@@ -134,7 +134,7 @@ public interface BrowseRecordsServiceAsync {
     void getGoldenRecordIdByGroupId(String dataClusterPK, String viewPK, String concept, String[] keys, String groupId,
             AsyncCallback<String> callback);
 
-    void checkTask(String dataClusterPK, String viewPK, String concept, String groupId, AsyncCallback<Boolean> callback);
+    void checkTask(String dataClusterPK, String concept, String groupId, AsyncCallback<Boolean> callback);
 
     void getRecords(String concept, List<String> idsList, AsyncCallback<List<ItemBean>> callback);
 

@@ -28,10 +28,12 @@ import org.talend.mdm.webapp.base.client.model.BasePagingLoadConfigImpl;
 import org.talend.mdm.webapp.base.client.model.ItemBasePageLoadResult;
 import org.talend.mdm.webapp.base.server.util.CommonUtil;
 import org.talend.mdm.webapp.recyclebin.client.RecycleBinService;
+import org.talend.mdm.webapp.recyclebin.shared.DroppedItemBeforeDeletingException;
 import org.talend.mdm.webapp.recyclebin.shared.ItemsTrashItem;
 import org.talend.mdm.webapp.recyclebin.shared.NoPermissionException;
 
 import com.amalto.core.objects.datamodel.ejb.DataModelPOJO;
+import com.amalto.core.util.BeforeDeletingErrorException;
 import com.amalto.core.util.LocalUser;
 import com.amalto.core.util.Messages;
 import com.amalto.core.util.MessagesFactory;
@@ -150,7 +152,11 @@ public class RecycleBinAction implements RecycleBinService {
             Locale locale = new Locale(language);
             return MESSAGES.getMessage(locale, "delete_process_validation_success"); //$NON-NLS-1$;
         } catch (RemoteException e) {
-            return e.getMessage();
+            if(e.getCause() != null && BeforeDeletingErrorException.class.isInstance(e.getCause())){
+                BeforeDeletingErrorException exception = (BeforeDeletingErrorException) e.getCause();
+                throw new DroppedItemBeforeDeletingException(exception.getMessageType(), exception.getMessage());
+            }
+            throw new ServiceException(e.getLocalizedMessage());
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
             throw new ServiceException(e.getLocalizedMessage());

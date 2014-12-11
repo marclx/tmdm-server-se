@@ -73,8 +73,10 @@ public class BulkloadClientUtil {
         }
 
         int statusCode = putMethod.getStatusCode();
-        if (statusCode >= 400) {
+        if (statusCode >= 500) {
             throw new BulkloadException(responseBody);
+        } else if (statusCode >= 400) {
+            throw new BulkloadException("Could not send data to MDM (HTTP status code: " + statusCode + ").");
         }
     }
 

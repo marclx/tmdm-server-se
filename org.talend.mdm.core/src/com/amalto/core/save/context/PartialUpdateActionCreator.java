@@ -215,6 +215,9 @@ public class PartialUpdateActionCreator extends UpdateActionCreator {
                 rightAccessor = newDocument.createAccessor(getRightPath());
                 if (!rightAccessor.exist()) {
                     // If new list does not exist, it means element was omitted in new version (legacy behavior).
+                    // TMDM-nnnn: Don't forget to exit current fields to prevent incorrect comparisons.
+                    leaveLeft();
+                    leaveRight();
                     return;
                 }
                 leftAccessor = originalDocument.createAccessor(getLeftPath());

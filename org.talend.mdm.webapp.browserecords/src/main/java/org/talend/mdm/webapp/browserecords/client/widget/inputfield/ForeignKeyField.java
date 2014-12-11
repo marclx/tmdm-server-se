@@ -292,7 +292,7 @@ public class ForeignKeyField extends TextField<ForeignKeyBean> implements Return
                                     setCriteriaFK(foreignKeyBean);
                                 } else {
                                     MessageBox.alert(MessagesFactory.getMessages().warning_title(), MessagesFactory.getMessages()
-                                            .foreignkeybean_filter_warnging(), null);
+                                            .foreignkey_filter_warning(), null);
                                 }
                             }
                         });
@@ -315,7 +315,7 @@ public class ForeignKeyField extends TextField<ForeignKeyBean> implements Return
             super.setValue(fk);
         }
     }
-    
+
     @Override
     public void setSuperValue(ForeignKeyBean fk) {
         super.setValue(fk);

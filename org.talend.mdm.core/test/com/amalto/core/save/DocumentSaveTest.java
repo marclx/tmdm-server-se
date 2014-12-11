@@ -1105,7 +1105,7 @@ public class DocumentSaveTest extends TestCase {
 
         assertTrue(committer.hasSaved());
     }
-
+        
     public void testProductUpdate() throws Exception {
         MetadataRepository repository = new MetadataRepository();
         repository.load(DocumentSaveTest.class.getResourceAsStream("metadata1.xsd"));
@@ -2749,6 +2749,32 @@ public class DocumentSaveTest extends TestCase {
         assertTrue(committer.hasSaved());
         Element committedElement = committer.getCommittedElement();
         assertEquals("Format_Date", evaluate(committedElement, "/EntiteA/format/@xsi:type"));
+    }
+    
+    public void test69() throws Exception {
+        // TMDM-7460: test for FK update during element's type change
+        MetadataRepository repository = new MetadataRepository();
+        repository.load(DocumentSaveTest.class.getResourceAsStream("metadata21.xsd"));
+        MockMetadataRepositoryAdmin.INSTANCE.register("metadata21.xsd", repository);
+
+        TestSaverSource source = new TestSaverSource(repository, true, "test71_original.xml", "metadata21.xsd");
+        source.setUserName("administrator");
+        SaverSession session = SaverSession.newSession(source);
+
+        InputStream recordXml2 = DocumentSaveTest.class.getResourceAsStream("test71.xml");
+        DocumentSaverContext context2 = session.getContextFactory().create("metadata21.xsd", "metadata21.xsd", "genericUI", recordXml2, false, false,
+                false, false, false);
+        DocumentSaver saver2 = context2.createSaver();
+        saver2.save(session, context2);
+        MockCommitter committer2 = new MockCommitter();
+        session.end(committer2);
+
+        assertTrue(committer2.hasSaved());
+        Element committedElement2 = committer2.getCommittedElement();
+        assertEquals("Format_Entier", evaluate(committedElement2, "/EntiteA/format/@xsi:type"));
+        assertEquals("[e1]", evaluate(committedElement2, "/EntiteA/format/CodeUniteMesure"));
+        String datarecordXml = context2.getDatabaseDocument().exportToString();        
+        assertEquals(datarecordXml, "<EntiteA><codeA>a1</codeA><format xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"Format_Entier\"><CodeUniteMesure>[e1]</CodeUniteMesure></format></EntiteA>");
     }
 
     public void testDateTypeInKey() throws Exception {

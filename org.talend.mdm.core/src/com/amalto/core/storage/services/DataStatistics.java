@@ -13,13 +13,11 @@ package com.amalto.core.storage.services;
 import static com.amalto.core.query.user.UserQueryBuilder.*;
 
 import java.io.StringWriter;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.*;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -37,27 +35,30 @@ import com.amalto.core.storage.StorageResults;
 import com.amalto.core.storage.StorageType;
 import com.amalto.core.storage.record.DataRecord;
 
-@Path("/system/stats/data") //$NON-NLS-1$
+@Path("/system/stats/data")//$NON-NLS-1$
 public class DataStatistics {
 
     private static final Logger LOGGER = Logger.getLogger(DataStatistics.class);
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{container}") //$NON-NLS-1$
-    public Response getDataStatistics(@PathParam("container") //$NON-NLS-1$
-            String containerName, @QueryParam("lang") //$NON-NLS-1$
-            String language, @QueryParam("top") //$NON-NLS-1$
+    @Path("{container}")//$NON-NLS-1$
+    public Response getDataStatistics(@PathParam("container")//$NON-NLS-1$
+            String containerName, @QueryParam("lang")//$NON-NLS-1$
+            String language, @QueryParam("top")//$NON-NLS-1$
             Integer top) {
         StorageAdmin storageAdmin = ServerContext.INSTANCE.get().getStorageAdmin();
         Storage dataStorage = storageAdmin.get(containerName, StorageType.MASTER, null);
         if (dataStorage == null) {
             Storage systemStorage = storageAdmin.get(StorageAdmin.SYSTEM_STORAGE, StorageType.SYSTEM, null);
-            if (systemStorage == null) { // is xmldb, not supported/implemented
-                LOGGER.debug("Could not find system storage. Statistics is not supported for XMLDB"); //$NON-NLS-1$
-                return Response.status(Response.Status.NO_CONTENT).build();
+            if (LOGGER.isDebugEnabled()) {
+                if (systemStorage == null) { // is xmldb, not supported/implemented
+                    LOGGER.debug("Could not find system storage. Statistics is not supported for XMLDB"); //$NON-NLS-1$
+                } else {
+                    LOGGER.debug("Container '" + containerName + "' does not exist.");
+                }
             }
-            throw new IllegalArgumentException("Container '" + containerName + "' does not exist.");
+            return Response.status(Response.Status.NO_CONTENT).build();
         }
         // Build statistics
         SortedSet<TypeEntry> entries = new TreeSet<TypeEntry>(new Comparator<TypeEntry>() {
@@ -76,6 +77,7 @@ public class DataStatistics {
             }
         });
         // Fill type counts (order by count)
+        long totalCount = 0; // Need total count for percentage compute
         try {
             MetadataRepository repository = dataStorage.getMetadataRepository();
             dataStorage.begin();
@@ -96,28 +98,39 @@ public class DataStatistics {
                 }
                 entry.typeName = name;
                 entry.count = countValue;
+                totalCount += countValue;
                 entries.add(entry);
             }
             dataStorage.commit();
         } catch (Exception e) {
+            try {
+                dataStorage.rollback();
+            } catch (Exception rollbackException) {
+                LOGGER.debug("Unable to rollback transaction.", e);
+            }
             if (dataStorage.isClosed()) {
                 // TMDM-7749: Ignore errors when storage is closed.
                 if (LOGGER.isDebugEnabled()) {
                     LOGGER.debug("Exception occurred due to closed storage.", e);
                 }
-                return Response.status(Response.Status.NO_CONTENT).build();
             } else {
-                dataStorage.rollback();
-                throw new RuntimeException("Could not provide statistics.", e);
+                // TMDM-7970: Ignore all storage related errors.
+                LOGGER.warn("Unable to compute statistics.");
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Unable to compute statistics due to storage exception.", e);
+                }
             }
+            return Response.status(Response.Status.NO_CONTENT).build();
         }
         // Write results
-        if (top == null || top <= 0) {
-            top = Integer.MAX_VALUE; // no top parameter or top <= 0 means 'all' types.
-        }
-        StringWriter stringWriter = new StringWriter();
-        JSONWriter writer = new JSONWriter(stringWriter);
         try {
+            if (top == null || top <= 0) {
+                top = Integer.MAX_VALUE; // no top parameter or top <= 0 means 'all' types.
+            }
+            StringWriter stringWriter = new StringWriter();
+            DecimalFormat percentageFormat = new DecimalFormat("##.##", DecimalFormatSymbols.getInstance(Locale.ENGLISH)); //$NON-NLS-1$
+            JSONWriter writer = new JSONWriter(stringWriter);
+
             writer.object().key("data"); //$NON-NLS-1$
             {
                 writer.array();
@@ -125,17 +138,31 @@ public class DataStatistics {
                     Iterator<TypeEntry> iterator = entries.iterator();
                     for (int i = 0; i < top && iterator.hasNext(); i++) {
                         TypeEntry entry = iterator.next();
-                        writer.object().key(entry.typeName).value(entry.count).endObject();
+                        writer.object().key(entry.typeName);
+                        {
+                            writer.array();
+                            {
+                                writer.object().key("count").value(entry.count).endObject(); //$NON-NLS-1$
+                                double percentage = totalCount > 0 ? (entry.count * 100) / totalCount : 0;
+                                writer.object().key("percentage").value(percentageFormat.format(percentage)).endObject(); //$NON-NLS-1$
+                            }
+                            writer.endArray();
+                        }
+                        writer.endObject();
                     }
                 }
                 writer.endArray();
             }
             writer.endObject();
+            return Response.ok().type(MediaType.APPLICATION_JSON_TYPE).entity(stringWriter.toString())
+                    .header("Access-Control-Allow-Origin", "*").build(); //$NON-NLS-1$ //$NON-NLS-2$
         } catch (JSONException e) {
-            throw new RuntimeException("Could not write statistics.", e);
+            LOGGER.warn("Unable to send statistics.");
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Unable to send statistics due to storage exception.", e);
+            }
+            return Response.status(Response.Status.NO_CONTENT).build();
         }
-        return Response.ok().type(MediaType.APPLICATION_JSON_TYPE).entity(stringWriter.toString())
-                .header("Access-Control-Allow-Origin", "*").build(); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     // Object to store type statistics before building JSON output
@@ -143,6 +170,6 @@ public class DataStatistics {
 
         String typeName;
 
-        long count;
+        double count;
     }
 }

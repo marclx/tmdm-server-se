@@ -9,7 +9,6 @@ import com.amalto.core.integrity.FKIntegrityCheckResult;
 import com.amalto.core.jobox.util.JobNotFoundException;
 import com.amalto.core.storage.exception.ConstraintViolationException;
 import com.amalto.core.storage.exception.FullTextQueryCompositeKeyException;
-import com.amalto.core.util.BeforeDeletingErrorException;
 import com.amalto.core.util.EntityNotFoundException;
 import com.amalto.core.util.*;
 import com.amalto.core.util.RoutingException;import com.amalto.core.webservice.*;
@@ -422,12 +421,6 @@ public class XtentisWebPort implements XtentisPort {
                 ConstraintViolationException cause = Util.cause(e, ConstraintViolationException.class);
                 throw new RemoteException(StringUtils.EMPTY, new WebCoreException(INTEGRITY_CONSTRAINT_CHECK_FAILED_MESSAGE,
                         cause));
-            }
-            if (Util.causeIs(e, com.amalto.core.util.BeforeDeletingErrorException.class)) {
-                BeforeDeletingErrorException causeException = Util.cause(e,
-                        com.amalto.core.util.BeforeDeletingErrorException.class);
-                throw new RemoteException(StringUtils.EMPTY, new WebCoreException(causeException.getLocalizedMessage(),
-                        causeException));
             }
             throw new RemoteException(e.getLocalizedMessage(), e);
         }

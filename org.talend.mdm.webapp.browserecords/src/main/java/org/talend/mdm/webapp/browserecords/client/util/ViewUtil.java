@@ -30,6 +30,7 @@ import org.talend.mdm.webapp.browserecords.shared.ViewBean;
 
 import com.extjs.gxt.ui.client.GXT;
 import com.extjs.gxt.ui.client.core.El;
+import com.extjs.gxt.ui.client.data.ModelData;
 import com.extjs.gxt.ui.client.widget.form.Field;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.dom.client.Style.Unit;
@@ -136,6 +137,51 @@ public class ViewUtil {
         }
     }
 
+    public static ItemNodeModel transformToCustomLayoutModel(ItemNodeModel rootModel, List<ColumnTreeModel> columnTreeModels) {
+        ItemNodeModel customLayoutModel = rootModel;        
+        if(columnTreeModels.size() > 0){
+            List<ItemNodeModel> nodeList = new ArrayList<ItemNodeModel>();
+            for(ColumnTreeModel ctm: columnTreeModels){
+                for(ColumnElement ce : ctm.getColumnElements()){
+                    for(ModelData model : rootModel.getChildren()){
+                        ItemNodeModel nodeModel = (ItemNodeModel)model;
+                        if(ce.getxPath().equals("/" + nodeModel.getTypePath())){ //$NON-NLS-1$
+                            if(ce.getChildren() != null){
+                                nodeModel =  __transformToCustomLayoutModel(nodeModel, ce);
+                            }
+                            if(nodeModel != null){
+                                nodeList.add(nodeModel);
+                            }
+                        }
+                    }
+                }
+            }            
+            customLayoutModel.setChildNodes(nodeList);
+        }
+        return customLayoutModel;
+    }
+    
+    public static ItemNodeModel __transformToCustomLayoutModel(ItemNodeModel nodeModel, ColumnElement customLayoutElement) {
+        ItemNodeModel customLayoutModel = nodeModel.clone(true);
+        if(customLayoutElement.getChildren().size() < 1){
+            return nodeModel;
+        }                
+        List<ItemNodeModel> nodeList = new ArrayList<ItemNodeModel>();
+        for(ColumnElement node : customLayoutElement.getChildren()){            
+            for(ModelData model : nodeModel.getChildren()){
+                ItemNodeModel tempModel = (ItemNodeModel)model;
+                if(node.getxPath().equals("/" + tempModel.getTypePath())){ //$NON-NLS-1$
+                    if(node.getChildren() != null){
+                        tempModel = __transformToCustomLayoutModel(tempModel, node);
+                    }
+                    nodeList.add(tempModel);
+                }
+            }
+        }        
+        customLayoutModel.setChildNodes(nodeList);
+        return customLayoutModel;
+    }
+    
     public static void applyStyleTreeItem(final TreeItemEx item, final String labelStyle, final String valueStyle, String style) {
         String marginLeft = item.getElement().getStyle().getMarginLeft();
         String padding = item.getElement().getStyle().getPadding();
@@ -149,6 +195,7 @@ public class ViewUtil {
         }
         DeferredCommand.addCommand(new Command() {
 
+            @Override
             public void execute() {
                 if (item.getWidget() instanceof HorizontalPanel) {
                     HorizontalPanel hp = (HorizontalPanel) item.getWidget();
@@ -176,6 +223,7 @@ public class ViewUtil {
             setStyleAttribute(targetLabel.getElement(), getStyleAttribute(sourceLabel.getElement()));
             if (sourceHp.getWidgetCount() >= 2 && sourceHp.getWidget(1) instanceof Field<?>) {
                 DeferredCommand.addCommand(new Command() {
+                    @Override
                     public void execute() {
                         El sourceInputEl = getInputEl((Field<?>) sourceHp.getWidget(1));
                         El targetInputEl = getInputEl((Field<?>) targetHp.getWidget(1));

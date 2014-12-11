@@ -285,7 +285,7 @@ public class RecommendedIndexes {
         }
 
         public Collection<FieldMetadata> visit(OrderBy orderBy) {
-            return orderBy.getField().accept(this);
+            return orderBy.getExpression().accept(this);
         }
 
         public Collection<FieldMetadata> visit(Paging paging) {

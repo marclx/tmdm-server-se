@@ -21,12 +21,12 @@ public class OrderBy implements Expression {
         DESC
     }
 
-    private final TypedExpression field;
+    private final TypedExpression expression;
 
     private final Direction direction;
 
-    public OrderBy(TypedExpression field, Direction direction) {
-        this.field = field;
+    public OrderBy(TypedExpression expression, Direction direction) {
+        this.expression = expression;
         this.direction = direction;
     }
 
@@ -34,8 +34,8 @@ public class OrderBy implements Expression {
         return direction;
     }
 
-    public TypedExpression getField() {
-        return field;
+    public TypedExpression getExpression() {
+        return expression;
     }
 
     public Expression normalize() {
@@ -63,7 +63,7 @@ public class OrderBy implements Expression {
         if (direction != orderBy.direction) {
             return false;
         }
-        if (field != null ? !field.equals(orderBy.field) : orderBy.field != null) {
+        if (expression != null ? !expression.equals(orderBy.expression) : orderBy.expression != null) {
             return false;
         }
         return true;
@@ -71,7 +71,7 @@ public class OrderBy implements Expression {
 
     @Override
     public int hashCode() {
-        int result = field != null ? field.hashCode() : 0;
+        int result = expression != null ? expression.hashCode() : 0;
         result = 31 * result + (direction != null ? direction.hashCode() : 0);
         return result;
     }

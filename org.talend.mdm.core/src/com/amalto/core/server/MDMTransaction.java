@@ -32,6 +32,10 @@ class MDMTransaction implements Transaction {
 
     private final Lifetime lifetime;
 
+    private final Object[] lockChange = new Object[0];
+
+    private LockStrategy lockStrategy = LockStrategy.NO_LOCK;
+
     MDMTransaction(Lifetime lifetime, String id) {
         this.lifetime = lifetime;
         this.id = id;
@@ -51,6 +55,24 @@ class MDMTransaction implements Transaction {
                 storageTransactions.clear();
                 ServerContext.INSTANCE.get().getTransactionManager().remove(this);
             }
+        }
+    }
+
+    @Override
+    public void setLockStrategy(LockStrategy lockStrategy) {
+        synchronized (lockChange) { // TODO Lock on storage transactions?
+            this.lockStrategy = lockStrategy;
+            for (Object o : storageTransactions.values()) {
+                StorageTransaction storageTransaction = (StorageTransaction) o;
+                storageTransaction.setLockStrategy(lockStrategy);
+            }
+        }
+    }
+
+    @Override
+    public LockStrategy getLockStrategy() {
+        synchronized (lockChange) {
+            return lockStrategy;
         }
     }
 
@@ -148,6 +170,7 @@ class MDMTransaction implements Transaction {
             storageTransaction = (StorageTransaction) storageTransactions.get(storage, Thread.currentThread());
             if (storageTransaction == null) {
                 storageTransaction = storage.newStorageTransaction();
+                storageTransaction.setLockStrategy(lockStrategy);
                 storageTransactions.put(storage, Thread.currentThread(), storageTransaction);
             }
         }

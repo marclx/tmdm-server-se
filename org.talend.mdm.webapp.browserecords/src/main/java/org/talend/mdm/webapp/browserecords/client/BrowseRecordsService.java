@@ -20,6 +20,7 @@ import org.talend.mdm.webapp.base.client.model.BasePagingLoadConfigImpl;
 import org.talend.mdm.webapp.base.client.model.ForeignKeyBean;
 import org.talend.mdm.webapp.base.client.model.ItemBaseModel;
 import org.talend.mdm.webapp.base.client.model.ItemBasePageLoadResult;
+import org.talend.mdm.webapp.base.client.model.ItemResult;
 import org.talend.mdm.webapp.base.shared.EntityModel;
 import org.talend.mdm.webapp.base.shared.TypeModel;
 import org.talend.mdm.webapp.browserecords.client.model.ColumnTreeLayoutModel;
@@ -28,7 +29,6 @@ import org.talend.mdm.webapp.browserecords.client.model.ForeignKeyModel;
 import org.talend.mdm.webapp.browserecords.client.model.FormatModel;
 import org.talend.mdm.webapp.browserecords.client.model.ItemBean;
 import org.talend.mdm.webapp.browserecords.client.model.ItemNodeModel;
-import org.talend.mdm.webapp.browserecords.client.model.ItemResult;
 import org.talend.mdm.webapp.browserecords.client.model.QueryModel;
 import org.talend.mdm.webapp.browserecords.client.model.Restriction;
 import org.talend.mdm.webapp.browserecords.client.model.UpdateItemModel;
@@ -68,7 +68,7 @@ public interface BrowseRecordsService extends RemoteService {
 
     ViewBean getView(String viewPk, String language) throws ServiceException;
 
-    List<String> deleteItemBeans(List<ItemBean> items, boolean override, String language) throws ServiceException;
+    List<ItemResult> deleteItemBeans(List<ItemBean> items, boolean override, String language) throws ServiceException;
 
     Map<ItemBean, FKIntegrityResult> checkFKIntegrity(List<ItemBean> selectedItems) throws ServiceException;
 
@@ -113,7 +113,7 @@ public interface BrowseRecordsService extends RemoteService {
 
     ItemResult saveItem(String concept, String ids, String xml, boolean isCreate, String language) throws ServiceException;
 
-    ItemResult updateItem(String concept, String ids, Map<String, String> changedNodes, String xml, String language)
+    ItemResult updateItem(String concept, String ids, Map<String, String> changedNodes, String xml, EntityModel entityModel, String language)
             throws ServiceException;
 
     List<ItemResult> updateItems(List<UpdateItemModel> updateItems, String language) throws ServiceException;
@@ -144,7 +144,7 @@ public interface BrowseRecordsService extends RemoteService {
     String getGoldenRecordIdByGroupId(String dataClusterPK, String viewPK, String concept, String[] keys, String groupId)
             throws ServiceException;
 
-    boolean checkTask(String dataClusterPK, String viewPK, String concept, String groupId) throws ServiceException;
+    boolean checkTask(String dataClusterPK, String concept, String groupId) throws ServiceException;
 
     List<ItemBean> getRecords(String concept, List<String> idsList) throws ServiceException;
 

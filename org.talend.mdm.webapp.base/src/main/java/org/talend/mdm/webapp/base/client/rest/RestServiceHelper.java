@@ -21,8 +21,6 @@ import com.google.gwt.core.client.GWT;
 
 public class RestServiceHelper {
 
-    public static final String SEPARATOR = "/"; //$NON-NLS-1$
-
     public static final String BASE_URL = GWT.getHostPageBaseURL().replaceAll("/general/secure", ""); //$NON-NLS-1$ //$NON-NLS-2$
 
     private static boolean validResponse(Response response) {

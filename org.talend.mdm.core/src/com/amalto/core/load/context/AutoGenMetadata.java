@@ -12,6 +12,7 @@
 package com.amalto.core.load.context;
 
 import com.amalto.core.load.Metadata;
+import com.amalto.core.save.generator.AutoIdGenerator;
 
 /**
  *

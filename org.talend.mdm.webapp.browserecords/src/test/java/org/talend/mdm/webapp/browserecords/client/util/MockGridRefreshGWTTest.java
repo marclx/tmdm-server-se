@@ -21,6 +21,7 @@ import org.talend.mdm.webapp.base.client.model.BasePagingLoadConfigImpl;
 import org.talend.mdm.webapp.base.client.model.ForeignKeyBean;
 import org.talend.mdm.webapp.base.client.model.ItemBaseModel;
 import org.talend.mdm.webapp.base.client.model.ItemBasePageLoadResult;
+import org.talend.mdm.webapp.base.client.model.ItemResult;
 import org.talend.mdm.webapp.base.client.widget.ColumnAlignGrid;
 import org.talend.mdm.webapp.base.client.widget.PagingToolBarEx;
 import org.talend.mdm.webapp.base.shared.EntityModel;
@@ -33,7 +34,6 @@ import org.talend.mdm.webapp.browserecords.client.model.ForeignKeyModel;
 import org.talend.mdm.webapp.browserecords.client.model.FormatModel;
 import org.talend.mdm.webapp.browserecords.client.model.ItemBean;
 import org.talend.mdm.webapp.browserecords.client.model.ItemNodeModel;
-import org.talend.mdm.webapp.browserecords.client.model.ItemResult;
 import org.talend.mdm.webapp.browserecords.client.model.QueryModel;
 import org.talend.mdm.webapp.browserecords.client.model.Restriction;
 import org.talend.mdm.webapp.browserecords.client.model.UpdateItemModel;
@@ -369,10 +369,10 @@ public class MockGridRefreshGWTTest extends GWTTestCase {
     }
 
     private void onDeleteItemBeans() {
-        service.deleteItemBeans(null, true, "en", new SessionAwareAsyncCallback<List<String>>() {
+        service.deleteItemBeans(null, true, "en", new SessionAwareAsyncCallback<List<ItemResult>>() {
 
             @Override
-            public void onSuccess(List<String> result) {
+            public void onSuccess(List<ItemResult> result) {
                 assertNotNull(result);
                 gridRefresh();
             }
@@ -423,8 +423,9 @@ public class MockGridRefreshGWTTest extends GWTTestCase {
         }
 
         @Override
-        public void deleteItemBeans(List<ItemBean> items, boolean override, String language, AsyncCallback<List<String>> callback) {
-            callback.onSuccess(new ArrayList<String>());
+        public void deleteItemBeans(List<ItemBean> items, boolean override, String language,
+                AsyncCallback<List<ItemResult>> callback) {
+            callback.onSuccess(new ArrayList<ItemResult>());
         }
 
         @Override
@@ -527,7 +528,7 @@ public class MockGridRefreshGWTTest extends GWTTestCase {
         }
 
         @Override
-        public void updateItem(String concept, String ids, Map<String, String> changedNodes, String xml, String language,
+        public void updateItem(String concept, String ids, Map<String, String> changedNodes, String xml, EntityModel entityModel, String language,
                 AsyncCallback<ItemResult> callback) {
 
         }
@@ -608,7 +609,7 @@ public class MockGridRefreshGWTTest extends GWTTestCase {
         }
 
         @Override
-        public void checkTask(String dataClusterPK, String viewPK, String concept, String groupId, AsyncCallback<Boolean> callback) {
+        public void checkTask(String dataClusterPK, String concept, String groupId, AsyncCallback<Boolean> callback) {
 
         }
 

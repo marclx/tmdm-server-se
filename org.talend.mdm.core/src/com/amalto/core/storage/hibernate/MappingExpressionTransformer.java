@@ -91,7 +91,7 @@ class MappingExpressionTransformer extends VisitorAdapter<Expression> {
             builder.where((Condition) condition.accept(this));
         }
         for (OrderBy current : select.getOrderBy()) {
-            builder.orderBy((TypedExpression) current.getField().accept(this), current.getDirection());
+            builder.orderBy((TypedExpression) current.getExpression().accept(this), current.getDirection());
         }
         for (TypedExpression selectedField : select.getSelectedFields()) {
             builder.select((TypedExpression) selectedField.accept(this));
@@ -391,7 +391,7 @@ class MappingExpressionTransformer extends VisitorAdapter<Expression> {
 
     @Override
     public Expression visit(OrderBy orderBy) {
-        return new OrderBy((TypedExpression) orderBy.getField().accept(this), orderBy.getDirection());
+        return new OrderBy((TypedExpression) orderBy.getExpression().accept(this), orderBy.getDirection());
     }
 
     @Override
@@ -403,6 +403,9 @@ class MappingExpressionTransformer extends VisitorAdapter<Expression> {
 
     @Override
     public Expression visit(Count count) {
+        if (count.getExpression() != null) {
+            return new Count((TypedExpression) count.getExpression().accept(this));
+        }
         return count;
     }
 

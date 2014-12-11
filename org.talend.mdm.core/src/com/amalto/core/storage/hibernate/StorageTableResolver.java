@@ -180,7 +180,12 @@ class StorageTableResolver implements TableResolver {
             return s;
         }
         char[] chars = s.toCharArray();
-        return __shortString(chars, maxLength);
+        String shortString = __shortString(chars, maxLength);
+        while (shortString.length() > maxLength) {
+            shortString = __shortString(shortString.toCharArray(), maxLength);
+        }
+        
+        return shortString;
     }
 
     // Internal method for recursion.

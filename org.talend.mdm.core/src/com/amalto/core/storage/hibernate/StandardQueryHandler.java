@@ -10,60 +10,31 @@
 
 package com.amalto.core.storage.hibernate;
 
-import static org.hibernate.criterion.Restrictions.*;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.amalto.core.query.user.*;
-import org.apache.commons.lang.NotImplementedException;
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-import org.hibernate.Criteria;
-import org.hibernate.Hibernate;
-import org.hibernate.ScrollMode;
-import org.hibernate.ScrollableResults;
-import org.hibernate.Session;
-import org.hibernate.criterion.CriteriaSpecification;
-import org.hibernate.criterion.Criterion;
-import org.hibernate.criterion.Order;
-import org.hibernate.criterion.Projection;
-import org.hibernate.criterion.ProjectionList;
-import org.hibernate.criterion.Projections;
-import org.hibernate.criterion.Restrictions;
-import org.hibernate.impl.CriteriaImpl;
-import org.hibernate.sql.JoinFragment;
-import org.hibernate.transform.DistinctRootEntityResultTransformer;
-import org.hibernate.type.IntegerType;
-import org.talend.mdm.commmon.metadata.ComplexTypeMetadata;
-import org.talend.mdm.commmon.metadata.CompoundFieldMetadata;
-import org.talend.mdm.commmon.metadata.DefaultMetadataVisitor;
-import org.talend.mdm.commmon.metadata.EnumerationFieldMetadata;
-import org.talend.mdm.commmon.metadata.FieldMetadata;
-import org.talend.mdm.commmon.metadata.ReferenceFieldMetadata;
-import org.talend.mdm.commmon.metadata.SimpleTypeFieldMetadata;
-
-import com.amalto.core.query.user.metadata.GroupSize;
-import com.amalto.core.query.user.metadata.StagingBlockKey;
-import com.amalto.core.query.user.metadata.StagingError;
-import com.amalto.core.query.user.metadata.StagingSource;
-import com.amalto.core.query.user.metadata.StagingStatus;
-import com.amalto.core.query.user.metadata.TaskId;
-import com.amalto.core.query.user.metadata.Timestamp;
+import com.amalto.core.query.user.Distinct;
+import com.amalto.core.query.user.Expression;
+import com.amalto.core.query.user.metadata.*;
 import com.amalto.core.storage.Storage;
 import com.amalto.core.storage.StorageMetadataUtils;
 import com.amalto.core.storage.StorageResults;
 import com.amalto.core.storage.datasource.DataSource;
 import com.amalto.core.storage.datasource.RDBMSDataSource;
 import com.amalto.core.storage.record.DataRecord;
+import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+import org.hibernate.*;
+import org.hibernate.criterion.*;
+import org.hibernate.impl.CriteriaImpl;
+import org.hibernate.sql.JoinFragment;
+import org.hibernate.transform.DistinctRootEntityResultTransformer;
+import org.hibernate.type.IntegerType;
+import org.talend.mdm.commmon.metadata.*;
+
+import java.io.IOException;
+import java.util.*;
+
+import static org.hibernate.criterion.Restrictions.*;
 
 class StandardQueryHandler extends AbstractQueryHandler {
 
@@ -90,6 +61,8 @@ class StandardQueryHandler extends AbstractQueryHandler {
     private int aliasCount = 0;
 
     private String currentAliasName;
+
+    private int countAggregateIndex = 0;
 
     public StandardQueryHandler(Storage storage, MappingRepository mappings, TableResolver resolver,
             StorageClassLoader storageClassLoader, Session session, Select select, List<TypedExpression> selectedFields,
@@ -394,6 +367,29 @@ class StandardQueryHandler extends AbstractQueryHandler {
     }
 
     /**
+     * Test if a path has elements part of a inheritance tree.
+     * 
+     * @param path A list of {@link org.talend.mdm.commmon.metadata.FieldMetadata fields} that represents a path from an
+     * entity type down to a selected field (for projection or condition).
+     * @return <code>true</code> if at least one element in the <code>path</code> is contained in a type part of an
+     * inheritance tree, <code>false</code> otherwise. If path is empty, returns <code>true</code> as method cannot
+     * decide.
+     */
+    private static boolean pathContainsInheritance(List<FieldMetadata> path) {
+        if (path.isEmpty()) {
+            // Path is empty: it may contain inheritance elements, can't decide.
+            return true;
+        }
+        for (FieldMetadata fieldMetadata : path) {
+            ComplexTypeMetadata containingType = fieldMetadata.getContainingType();
+            if (!containingType.getSubTypes().isEmpty() || !containingType.getSuperTypes().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * <p>
      * Generate an alias to the <code>field</code> starting from <code>type</code>. This code ensures all paths to
      * <code>field</code> are covered (this field might be present several times inside the MDM entity scope).
@@ -411,7 +407,8 @@ class StandardQueryHandler extends AbstractQueryHandler {
         String previousAlias = type.getName();
         String alias = null;
         Set<List<FieldMetadata>> paths;
-        if (fieldMetadata instanceof ReferenceFieldMetadata || !fieldMetadata.getContainingType().isInstantiable()) {
+        if (fieldMetadata instanceof ReferenceFieldMetadata
+                || (!fieldMetadata.getContainingType().isInstantiable() && pathContainsInheritance(field.getPath()))) {
             paths = StorageMetadataUtils.paths(type, fieldMetadata);
         } else {
             paths = Collections.singleton(field.getPath());
@@ -419,6 +416,7 @@ class StandardQueryHandler extends AbstractQueryHandler {
         Set<String> aliases = new HashSet<String>(paths.size());
         for (List<FieldMetadata> path : paths) {
             boolean newPath = false;
+            int joinType = CriteriaSpecification.INNER_JOIN;
             for (FieldMetadata next : path) {
                 if (next instanceof ReferenceFieldMetadata) {
                     aliases = joinFieldsToAlias.get(next);
@@ -430,13 +428,14 @@ class StandardQueryHandler extends AbstractQueryHandler {
                         } else {
                             aliases.add(alias);
                         }
-                        int joinType;
                         // TMDM-4866: Do a left join in case FK is not mandatory (only if there's one path).
-                        if (next.isMandatory() && paths.size() == 1) {
+                        // TMDM-7636: As soon as a left join is selected all remaining join should remain left outer.
+                        if (next.isMandatory() && paths.size() == 1 && joinType != CriteriaSpecification.LEFT_JOIN) {
                             joinType = CriteriaSpecification.INNER_JOIN;
                         } else {
                             joinType = CriteriaSpecification.LEFT_JOIN;
                         }
+
                         criteria.createAlias(previousAlias + '.' + next.getName(), alias, joinType);
                         newPath = true;
                     }
@@ -564,8 +563,9 @@ class StandardQueryHandler extends AbstractQueryHandler {
 
     @Override
     public StorageResults visit(OrderBy orderBy) {
-        TypedExpression orderByExpression = orderBy.getField();
-        FieldCondition condition = orderByExpression.accept(new CriterionFieldCondition());
+        TypedExpression orderByExpression = orderBy.getExpression();
+        CriterionFieldCondition fieldCondition = new CriterionFieldCondition();
+        FieldCondition condition = orderByExpression.accept(fieldCondition);
         if (orderByExpression instanceof Field) {
             Field field = (Field) orderByExpression;
             FieldMetadata userFieldMetadata = field.getFieldMetadata();
@@ -574,6 +574,26 @@ class StandardQueryHandler extends AbstractQueryHandler {
             condition.criterionFieldNames = new ArrayList<String>(aliases.size());
             for (String alias : aliases) {
                 condition.criterionFieldNames.add(alias + '.' + userFieldMetadata.getName());
+            }
+        }
+        if(orderByExpression instanceof Count) {
+            Count count = (Count) orderByExpression;
+            String propertyName = count.getExpression().accept(fieldCondition).criterionFieldNames.get(0);
+            ProjectionList list = projectionList;
+            if (projectionList instanceof ReadOnlyProjectionList) {
+                list = ((ReadOnlyProjectionList) projectionList).inner();
+            }
+            list.add(Projections.groupProperty(propertyName));
+            countAggregateIndex = 0;
+            String alias = "x_talend_countField" + countAggregateIndex++;
+            list.add(Projections.count(propertyName).as(alias));
+            switch (orderBy.getDirection()) {
+                case ASC:
+                    criteria.addOrder(Order.asc(alias));
+                    break;
+                case DESC:
+                    criteria.addOrder(Order.desc(alias));
+                    break;
             }
         }
         if (condition != null) {
@@ -1339,6 +1359,14 @@ class StandardQueryHandler extends AbstractQueryHandler {
             condition.isMany = false;
             condition.criterionFieldNames.clear();
             return condition;
+        }
+
+        @Override
+        public FieldCondition visit(Count count) {
+            FieldCondition fieldCondition = new FieldCondition();
+            fieldCondition.isProperty = false;
+            fieldCondition.isComputedProperty = true;
+            return fieldCondition;
         }
 
         @Override

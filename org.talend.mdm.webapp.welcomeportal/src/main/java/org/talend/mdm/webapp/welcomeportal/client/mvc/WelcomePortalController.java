@@ -75,4 +75,8 @@ public class WelcomePortalController extends Controller {
         }
 
     }
+
+    public void removeWelcomePortal() {
+        view.removePortal();
+    }
 }

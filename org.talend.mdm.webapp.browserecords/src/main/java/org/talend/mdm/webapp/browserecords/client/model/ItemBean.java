@@ -14,6 +14,8 @@ package org.talend.mdm.webapp.browserecords.client.model;
 
 import java.util.List;
 
+import org.talend.mdm.webapp.base.client.model.ItemResult;
+
 public class ItemBean extends org.talend.mdm.webapp.base.client.model.ItemBean {
 
     private static final long serialVersionUID = -1733441307059646670L;
@@ -115,14 +117,19 @@ public class ItemBean extends org.talend.mdm.webapp.base.client.model.ItemBean {
 
     public void setLastUpdateTime(ItemNodeModel itemNodeModel) {
         if (itemNodeModel != null)
+         {
             this.set("time", itemNodeModel.get("time")); //$NON-NLS-1$ //$NON-NLS-2$
+        }
     }
 
     public void setLastUpdateTime(ItemResult result) {
         if (result != null && result.getInsertionTime() > 0)
+         {
             this.set("time", result.getInsertionTime()); //$NON-NLS-1$
+        }
     }
     
+    @Override
     public void copy(org.talend.mdm.webapp.base.client.model.ItemBean itemBean) {
         super.copy(itemBean);
         if (itemBean instanceof ItemBean){

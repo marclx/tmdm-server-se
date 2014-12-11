@@ -1427,7 +1427,7 @@ public class XtentisWSBean implements XtentisPort {
 
     @Override
     public WSUniversePKArray getUniversePKs(WSGetUniversePKs wsGetUniversePKs) throws RemoteException {
-        return new WSUniversePKArray(new WSUniversePK[] { new WSUniversePK("HEAD")}); //$NON-NLS-1$
+        return BeanDelegatorContainer.getInstance().getXtentisWSDelegator().getUniversePKs(wsGetUniversePKs);
     }
 
     @Override

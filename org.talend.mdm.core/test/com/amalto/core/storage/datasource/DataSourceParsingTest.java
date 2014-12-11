@@ -189,4 +189,18 @@ public class DataSourceParsingTest extends TestCase {
         assertFalse(system.isShared());
     }
 
+    public void testAdvancedPropertiesReplace() throws Exception {
+        InputStream stream = DataSourceParsingTest.class.getResourceAsStream("datasources1.xml");
+        DataSourceDefinition dataSourceDefinition = DataSourceFactory.getInstance().getDataSource(stream, "Test-8", "MDM", null);
+        DataSource dataSource = dataSourceDefinition.getMaster();
+        assertNotNull(dataSource);
+        assertTrue(dataSource instanceof RDBMSDataSource);
+
+        RDBMSDataSource rdbmsDataSource = (RDBMSDataSource) dataSource;
+        Map<String, String> advancedProperties = rdbmsDataSource.getAdvancedProperties();
+        assertEquals(3, advancedProperties.size());
+        assertEquals("value1_MDM", advancedProperties.get("property1"));
+        assertEquals("value2_MDM", advancedProperties.get("property2"));
+        assertEquals("value3_MDM", advancedProperties.get("property3"));
+    }
 }

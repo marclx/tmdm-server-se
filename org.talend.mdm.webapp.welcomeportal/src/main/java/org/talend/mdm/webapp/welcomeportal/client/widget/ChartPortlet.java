@@ -31,7 +31,13 @@ import com.extjs.gxt.ui.client.event.Listener;
 import com.extjs.gxt.ui.client.widget.custom.Portal;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
+import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.PopupPanel;
 import com.googlecode.gflot.client.SimplePlot;
+import com.googlecode.gflot.client.event.PlotHoverListener;
+import com.googlecode.gflot.client.event.PlotItem;
+import com.googlecode.gflot.client.event.PlotPosition;
+import com.googlecode.gflot.client.jsni.Plot;
 import com.googlecode.gflot.client.options.GlobalSeriesOptions;
 import com.googlecode.gflot.client.options.PlotOptions;
 
@@ -41,9 +47,13 @@ public abstract class ChartPortlet extends BasePortlet {
 
     protected Map<String, Object> chartData;
 
+    protected List<String> entityNamesSorted;
+
     protected String dc;
 
     protected boolean dataContainerChanged;
+
+    protected PlotHoverListener hoverListener;
 
     private int plotWidth;
 
@@ -172,6 +182,7 @@ public abstract class ChartPortlet extends BasePortlet {
 
     protected void initAndShow() {
         initPlot();
+        addPlotHovering();
         set.removeAll();
         set.add(plot);
         set.layout(true);
@@ -215,4 +226,34 @@ public abstract class ChartPortlet extends BasePortlet {
     abstract protected void updatePlot();
 
     abstract protected boolean isDifferentFrom(Map<String, Object> newData);
+
+    protected void addPlotHovering() {
+        final PopupPanel popup = new PopupPanel();
+        final Label hoverLabel = new Label();
+        popup.add(hoverLabel);
+        plot.addHoverListener(new PlotHoverListener() {
+
+            @Override
+            public void onPlotHover(Plot plotArg, PlotPosition position, PlotItem item) {
+                if (item != null) {
+                    String text = getHoveringText(item);
+                    hoverLabel.setText(text);
+                    popup.setPopupPosition(item.getPageX() + 10, item.getPageY() - 25);
+                    popup.show();
+                } else {
+                    popup.hide();
+                }
+
+            }
+
+        }, false);
+    }
+
+    protected String getHoveringText(PlotItem item) {
+        String valueY = "" + (int) item.getDataPoint().getY(); //$NON-NLS-1$
+        int nameIndex = (int) item.getDataPoint().getX();
+
+        return entityNamesSorted.get(nameIndex) + ": " + valueY + "(" + item.getSeries().getLabel() + ")"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+    }
+
 }

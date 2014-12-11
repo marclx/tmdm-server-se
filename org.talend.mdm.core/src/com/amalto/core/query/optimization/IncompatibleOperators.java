@@ -24,12 +24,13 @@ public class IncompatibleOperators implements Optimizer {
         case MYSQL:
         case POSTGRES:
         case H2:
-        case DB2:
             return null;
-        case ORACLE_10G:
         case SQL_SERVER:
+        case ORACLE_10G:
+        case DB2:
             // TMDM-7532: SQL Server does not like equals operator on large text values
             // TMDM-7538: Oracle does not like equals operator on CLOBs.
+            // TMDM-7900: DB2 does not like equals operator on CLOBs.
             return new LargeColumnIncompatibleOperators(dataSource.getDialectName());
         default:
             throw new NotImplementedException("Dialect '" + dialect + "' is not implemented.");

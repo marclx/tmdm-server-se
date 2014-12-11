@@ -64,7 +64,7 @@ public class ForeignKeyHelperTest extends TestCase {
         // 1. ForeignKeyInfo = ProductFamily/Name
         MDMConfiguration.getConfiguration().setProperty("xmldb.type", EDBType.QIZX.getName()); //$NON-NLS-1$
         ForeignKeyHelper.ForeignKeyHolder result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model,
-                ifFKFilter, value);
+                ifFKFilter, value, true);
         WSWhereItem whereItem = result.whereItem;
         assertNotNull(whereItem);
         assertNotNull(whereItem.getWhereAnd());
@@ -86,7 +86,7 @@ public class ForeignKeyHelperTest extends TestCase {
 
         // 2. foreignKeyInfo = ProductFamily/Name,ProductFaimly/Description
         foreignKeyInfos.add("ProductFamily/Description"); //$NON-NLS-1$
-        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value);
+        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value, true);
 
         List<String> viewableXpaths = result.xpaths;
         assertTrue(viewableXpaths.size() > 0);
@@ -117,7 +117,7 @@ public class ForeignKeyHelperTest extends TestCase {
 
         // 3. foreignKeyInfo is null
         foreignKeyInfos.clear();
-        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value);
+        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value, true);
         whereItem = result.whereItem;
         whereItem1 = whereItem.getWhereAnd().getWhereItems()[0];
         condition1 = whereItem1.getWhereOr().getWhereItems()[0].getWhereAnd().getWhereItems()[0].getWhereAnd().getWhereItems()[0]
@@ -155,7 +155,7 @@ public class ForeignKeyHelperTest extends TestCase {
         model.setFkFilter("ProductFamily/Id$$<$$.$$#");
         xml = "<Product><id>1</id><Name>Shirts</Name><Family>[3]</Family></Product>";
         foreignKeyInfos.clear();
-        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value);
+        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value, true);
         whereItem = result.whereItem;
         condition1 = whereItem.getWhereAnd().getWhereItems()[0].getWhereCondition();
         assertEquals("ProductFamily/Id", condition1.getLeftPath()); //$NON-NLS-1$
@@ -163,7 +163,7 @@ public class ForeignKeyHelperTest extends TestCase {
         assertEquals("3", condition1.getRightValueOrPath()); //$NON-NLS-1$
 
         model.setFkFilter("ProductFamily/Id$$<$$.$$And#ProductFamily/Name$$Contains$$../Name$$#");
-        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value);
+        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value, true);
         whereItem = result.whereItem;
         assertEquals(2, whereItem.getWhereAnd().getWhereItems().length);
         condition1 = whereItem.getWhereAnd().getWhereItems()[0].getWhereCondition();
@@ -182,7 +182,7 @@ public class ForeignKeyHelperTest extends TestCase {
         model.setFkFilter("ProductFamily/Name$$Contains$$../Name$$#");
         xml = "<Product><id>1</id><Name>Shirts</Name><Family>[3]</Family></Product>";
         foreignKeyInfos.clear();
-        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value);
+        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value, true);
         whereItem = result.whereItem;
         condition1 = whereItem.getWhereAnd().getWhereItems()[0].getWhereCondition();
         assertEquals("ProductFamily/Name", condition1.getLeftPath()); //$NON-NLS-1$
@@ -206,7 +206,7 @@ public class ForeignKeyHelperTest extends TestCase {
         currentXpath = "Product/Type";
         model.setFkFilter("ProductType/Type/@xsi:type$$=$$ProductTypeOne$$#");
         foreignKeyInfos.clear();
-        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value);
+        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value, true);
         whereItem = result.whereItem;
         condition1 = whereItem.getWhereAnd().getWhereItems()[0].getWhereCondition();
         assertEquals("ProductType/Type/@xsi:type", condition1.getLeftPath()); //$NON-NLS-1$
@@ -215,7 +215,7 @@ public class ForeignKeyHelperTest extends TestCase {
 
         xml = "<Product><id>1</id><Name>Shirts</Name><Family>[3]</Family><Type>type1</Type></Product>";
         model.setFkFilter("ProductType/Type/@xsi:type$$=$$ProductTypeTwo$$And#ProductType/Name$$Contains$$/Product/Name$$#");
-        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value);
+        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value, true);
         whereItem = result.whereItem;
         assertEquals(2, whereItem.getWhereAnd().getWhereItems().length);
         condition1 = whereItem.getWhereAnd().getWhereItems()[0].getWhereCondition();
@@ -240,7 +240,7 @@ public class ForeignKeyHelperTest extends TestCase {
         model.setForeignKeyInfo(foreignKeyInfos);
         model.setForeignkey("CategoryOrga/Id");
         model.setFkFilter("CategoryOrga/TypeOrgaFK$$=$$/OrganisationOperationnelle/OpOrgType$$");
-        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value);
+        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value, true);
         whereItem = result.whereItem;
         condition1 = whereItem.getWhereAnd().getWhereItems()[0].getWhereCondition();
         assertEquals("CategoryOrga/TypeOrgaFK", condition1.getLeftPath()); //$NON-NLS-1$
@@ -253,7 +253,7 @@ public class ForeignKeyHelperTest extends TestCase {
         model.setFkFilter("ProductFamily/Id$$=$$\"[3]\"$$#");
         xml = "<Product><id>1</id><Name>Shirts</Name><Family>[3]</Family></Product>";
         foreignKeyInfos.clear();
-        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value);
+        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value, true);
         whereItem = result.whereItem;
         condition1 = whereItem.getWhereAnd().getWhereItems()[0].getWhereCondition();
         assertEquals("ProductFamily/Id", condition1.getLeftPath()); //$NON-NLS-1$
@@ -267,7 +267,7 @@ public class ForeignKeyHelperTest extends TestCase {
         dataCluster = "Product";
         currentXpath = "Product/Family";
         foreignKeyInfos.clear();
-        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, "");
+        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, "", true);
         assertNull(result.whereItem);
         assertEquals("$CFFP:Id=\"[3]\" and Name=\"Shirts\"", result.fkFilter);
 
@@ -279,7 +279,7 @@ public class ForeignKeyHelperTest extends TestCase {
         foreignKeyInfos.clear();
         value = "1";
         model.setForeignkey("ProductFamily/Id");
-        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value);
+        result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model, ifFKFilter, value, true);
         whereItem = result.whereItem;
         whereItem1 = whereItem.getWhereAnd().getWhereItems()[0];
         condition1 = whereItem1.getWhereOr().getWhereItems()[0].getWhereAnd().getWhereItems()[0].getWhereAnd().getWhereItems()[0]
@@ -313,9 +313,46 @@ public class ForeignKeyHelperTest extends TestCase {
 
         // ForeignKeyInfo = ProductFamily/Name, user user "*" as only filter value
         ForeignKeyHelper.ForeignKeyHolder result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model,
-                ifFKFilter, value);
+                ifFKFilter, value, true);
         WSWhereItem whereItem = result.whereItem;
         assertNull(whereItem);
+    }
+    
+    public void testForeignKeyBean_From_ForeignKeyHolder_WhereItem() throws Exception {
+
+        TypeModel model = new SimpleTypeModel("family", DataTypeConstants.STRING); //$NON-NLS-1$
+        model.setForeignkey("ProductFamily/Id"); //$NON-NLS-1$
+        List<String> foreignKeyInfos = new ArrayList<String>();
+        foreignKeyInfos.add("ProductFamily/Name"); //$NON-NLS-1$
+        model.setForeignKeyInfo(foreignKeyInfos);
+        model.setRetrieveFKinfos(true);
+        model.setXpath("Product/Family"); //$NON-NLS-1$
+        boolean ifFKFilter = false;
+        String value = "Id"; //$NON-NLS-1$
+        String xml = null;
+        String dataCluster = "Product";
+        String currentXpath = "Product/Family";
+
+        InputStream stream = getClass().getResourceAsStream("product.xsd");
+        String xsd = inputStream2String(stream);
+
+        ForeignKeyHelper.overrideSchemaManager(new SchemaMockAgent(xsd, new DataModelID("Product", null)));
+
+        // ForeignKeyInfo = ProductFamily/Name, user user "*" as only filter value
+        ForeignKeyHelper.ForeignKeyHolder result = ForeignKeyHelper.getForeignKeyHolder(xml, dataCluster, currentXpath, model,
+                ifFKFilter, value, false);
+        WSWhereItem whereItem = result.whereItem;
+        assertNotNull(whereItem);
+        assertNotNull(whereItem.getWhereAnd());
+        assertNotNull(whereItem.getWhereAnd().getWhereItems());
+
+        WSWhereItem whereItem1 = whereItem.getWhereAnd().getWhereItems()[0];
+        WSWhereCondition condition1 = whereItem1.getWhereOr().getWhereItems()[0].getWhereAnd().getWhereItems()[0].getWhereAnd()
+                .getWhereItems()[0].getWhereCondition();
+        assertEquals("ProductFamily/Id", condition1.getLeftPath()); //$NON-NLS-1$
+        assertEquals(WSWhereOperator._EQUALS, condition1.getOperator().getValue());
+        assertEquals("Id", condition1.getRightValueOrPath()); //$NON-NLS-1$
+        
     }
 
     private String inputStream2String(InputStream is) {
@@ -375,7 +412,9 @@ public class ForeignKeyHelperTest extends TestCase {
                     for (int i = 0; i < fks.length; i++) {
                         ids.append(fks[i] + " CONTAINS " + value); //$NON-NLS-1$
                         if (i != fks.length - 1)
+                         {
                             ids.append(" OR "); //$NON-NLS-1$
+                        }
                     }
                 }
             }
@@ -385,10 +424,12 @@ public class ForeignKeyHelperTest extends TestCase {
                         .length() > 0) ? realForeignKey : xpathForeignKey, fkInfo) : fkInfo) + " CONTAINS " + value); //$NON-NLS-1$
                 sb.append(" OR "); //$NON-NLS-1$
             }
-            if (realForeignKey != null)
+            if (realForeignKey != null) {
                 sb.append(ids.toString());
-            else
+            }
+            else {
                 sb.append(xpathForeignKey + " CONTAINS " + value); //$NON-NLS-1$
+            }
             fkWhere = sb.toString();
         }
 

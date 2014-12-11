@@ -244,5 +244,29 @@
         </system>
     </datasource>
 
-
+    <datasource name="Test-8">
+        <master>
+            <type>RDBMS</type>
+            <rdbms-configuration>
+                <dialect>MySQL</dialect>
+                <connection-driver-class>com.mysql.jdbc.Driver</connection-driver-class>
+                <connection-url>jdbc:mysql://10.42.150.15:3306/mdm_dev2</connection-url>
+                <connection-username>root</connection-username>
+                <connection-password>toor</connection-password>
+                <fulltext-index-directory>/var/lucene/indexes/DS2</fulltext-index-directory>
+                <schema-generation>validate</schema-generation>
+                <properties>
+                    <property name="property1">value1_${container}</property>
+                    <property name="property2">value2_${container}</property>
+                    <property name="property3">value3_${container}</property>
+                </properties>
+                <init>
+                    <connection-url>jdbc:mysql://10.42.150.15:3306/</connection-url>
+                    <connection-username>root</connection-username>
+                    <connection-password>toor</connection-password>
+                    <database-name>mdm_dev2</database-name>
+                </init>
+            </rdbms-configuration>
+        </master>
+    </datasource>
 </datasources>

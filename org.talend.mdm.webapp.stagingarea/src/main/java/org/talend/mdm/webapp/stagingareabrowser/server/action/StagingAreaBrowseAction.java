@@ -15,8 +15,12 @@ package org.talend.mdm.webapp.stagingareabrowser.server.action;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
+import com.amalto.core.server.ServerContext;
 import org.apache.log4j.Logger;
+import org.talend.mdm.commmon.metadata.ComplexTypeMetadata;
+import org.talend.mdm.commmon.metadata.MetadataRepository;
 import org.talend.mdm.webapp.base.client.exception.ServiceException;
 import org.talend.mdm.webapp.base.server.util.CommonUtil;
 import org.talend.mdm.webapp.stagingareabrowser.client.StagingAreaBrowseService;
@@ -28,8 +32,6 @@ import org.w3c.dom.Document;
 import com.amalto.webapp.core.bean.Configuration;
 import com.amalto.webapp.core.util.Util;
 import com.amalto.core.webservice.WSDataClusterPK;
-import com.amalto.core.webservice.WSDataModelPK;
-import com.amalto.core.webservice.WSGetBusinessConcepts;
 import com.amalto.core.webservice.WSStringArray;
 import com.amalto.core.webservice.WSStringPredicate;
 import com.amalto.core.webservice.WSWhereAnd;
@@ -49,13 +51,14 @@ public class StagingAreaBrowseAction implements StagingAreaBrowseService {
     public List<BaseModel> getConcepts(String language) throws ServiceException {
         try {
             String model = getCurrentDataModel();
-            String[] businessConcept = CommonUtil.getPort()
-                    .getBusinessConcepts(new WSGetBusinessConcepts(new WSDataModelPK(model))).getStrings();
+            MetadataRepository repository = ServerContext.INSTANCE.get().getMetadataRepositoryAdmin().get(model);
             List<BaseModel> conceptModels = new ArrayList<BaseModel>();
-            for (String concept : businessConcept) {
+            Locale locale = new Locale(language);
+            for (ComplexTypeMetadata type : repository.getUserComplexTypes()) {
                 BaseModel conceptModel = new BaseModel();
-                conceptModel.set("name", concept); //$NON-NLS-1$
-                conceptModel.set("value", concept); //$NON-NLS-1$
+                // "name" is used for display, "value" for querying (so keep in "value" the actual entity type name).
+                conceptModel.set("name", type.getName(locale)); //$NON-NLS-1$
+                conceptModel.set("value", type.getName()); //$NON-NLS-1$
                 conceptModels.add(conceptModel);
             }
             return conceptModels;

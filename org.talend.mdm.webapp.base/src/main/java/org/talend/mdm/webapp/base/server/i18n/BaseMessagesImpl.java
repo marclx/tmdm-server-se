@@ -205,4 +205,24 @@ public final class BaseMessagesImpl implements BaseMessages {
         return MESSAGES.getMessage("matching_failed");
     }
 
+    @Override
+    public String delete_success_prefix() {
+        return MESSAGES.getMessage("delete_success_prefix");
+    }
+
+    @Override
+    public String delete_fail_prefix() {
+        return MESSAGES.getMessage("delete_fail_prefix");
+    }
+
+    @Override
+    public String restore_success_prefix() {
+        return MESSAGES.getMessage("restore_success_prefix");
+    }
+
+    @Override
+    public String restore_fail_prefix() {
+        return MESSAGES.getMessage("restore_fail_prefix");
+    }
+
 }

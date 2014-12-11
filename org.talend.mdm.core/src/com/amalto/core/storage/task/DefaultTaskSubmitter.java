@@ -11,10 +11,22 @@
 
 package com.amalto.core.storage.task;
 
+import java.util.concurrent.*;
+
 public class DefaultTaskSubmitter implements TaskSubmitter {
+    /*
+     * Executor service with the following features:
+     * - 1 thread minimum
+     * - 4 thread max in pool
+     * - Keep alive of 10 minutes (when pool exceeds 1 thread, threads inactive for more than 10 minutes are removed).
+     * - A processing queue of 10 requests.
+     */
+    private final ExecutorService service = new ThreadPoolExecutor(1, 4, 10, TimeUnit.MINUTES, new ArrayBlockingQueue<Runnable>(
+                                                  10));
+    
     @Override
     public void submit(Task task) {
-        task.run();
+        service.submit(task);
     }
 
     @Override

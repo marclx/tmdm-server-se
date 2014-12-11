@@ -24,9 +24,9 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.log4j.Logger;
 import org.talend.mdm.webapp.general.server.util.Utils;
 
-import com.allen_sauer.gwt.log.client.Log;
 import com.amalto.core.util.LocaleUtil;
 import com.amalto.core.util.Messages;
 import com.amalto.core.util.MessagesFactory;
@@ -36,6 +36,8 @@ public class ControllerServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
 
+    private static final Logger LOG = Logger.getLogger(ControllerServlet.class);
+    
     private static final Messages MESSAGES = MessagesFactory.getMessages("org.talend.mdm.webapp.general.server.servlet.messages", //$NON-NLS-1$
             ControllerServlet.class.getClassLoader());
 
@@ -62,7 +64,7 @@ public class ControllerServlet extends HttpServlet {
                 locale = new Locale(language.toLowerCase());
             }
         } catch (Exception e1) {
-            Log.error("Load User Language Error!", e1); //$NON-NLS-1$
+            LOG.error("Load User Language Error!", e1); //$NON-NLS-1$
         }
 
         // Try then the language set on request

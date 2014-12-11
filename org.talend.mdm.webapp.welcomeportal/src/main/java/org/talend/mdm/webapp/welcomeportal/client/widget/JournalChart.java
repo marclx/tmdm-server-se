@@ -136,8 +136,7 @@ public class JournalChart extends ChartPortlet {
         super.initPlot();
         PlotModel model = plot.getModel();
         PlotOptions plotOptions = plot.getOptions();
-        Set<String> entityNames = chartData.keySet();
-        List<String> entityNamesSorted = sort(entityNames);
+        entityNamesSorted = sort(chartData.keySet());
 
         plotOptions
                 .setGlobalSeriesOptions(
@@ -150,11 +149,10 @@ public class JournalChart extends ChartPortlet {
                 .setYAxesOptions(AxesOptions.create().addAxisOptions(AxisOptions.create().setTickDecimals(0).setMinimum(0)))
                 .setXAxesOptions(
                         AxesOptions.create().addAxisOptions(
-                                CategoriesAxisOptions.create().setCategories(
-                                        entityNamesSorted.toArray(new String[entityNamesSorted.size()]))));
+                                CategoriesAxisOptions.create().setAxisLabelAngle(70d).setCategories(entityNamesSorted)));
 
         plotOptions.setLegendOptions(LegendOptions.create().setShow(true));
-        plotOptions.setGridOptions(GridOptions.create().setHoverable(true));
+        plotOptions.setGridOptions(GridOptions.create().setHoverable(true).setClickable(true));
 
         // create series
         SeriesHandler seriesCreation = model.addSeries(Series.of(MessagesFactory.getMessages().chart_journal_creation()));
@@ -173,11 +171,10 @@ public class JournalChart extends ChartPortlet {
     protected void updatePlot() {
         PlotModel model = plot.getModel();
         PlotOptions plotOptions = plot.getOptions();
-        Set<String> entityNames = chartData.keySet();
-        List<String> entityNamesSorted = sort(entityNames);
+        entityNamesSorted = sort(chartData.keySet());
 
         plotOptions.setXAxesOptions(AxesOptions.create().addAxisOptions(
-                CategoriesAxisOptions.create().setCategories(entityNamesSorted.toArray(new String[entityNamesSorted.size()]))));
+                CategoriesAxisOptions.create().setAxisLabelAngle(70d).setCategories(entityNamesSorted)));
 
         List<? extends SeriesHandler> series = model.getHandlers();
         assert series.size() == 2;
@@ -186,9 +183,11 @@ public class JournalChart extends ChartPortlet {
 
         seriesCreation.clear();
         seriesUpdate.clear();
-        for (String appName : entityNamesSorted) {
-            seriesCreation.add(DataPoint.of(appName, ((Map<String, Integer>) chartData.get(appName)).get(JOURNAL_ACTION_CREATE)));
-            seriesUpdate.add(DataPoint.of(appName, ((Map<String, Integer>) chartData.get(appName)).get(JOURNAL_ACTION_UPDATE)));
+        for (String entityName : entityNamesSorted) {
+            seriesCreation.add(DataPoint.of(entityName,
+                    ((Map<String, Integer>) chartData.get(entityName)).get(JOURNAL_ACTION_CREATE)));
+            seriesUpdate.add(DataPoint.of(entityName,
+                    ((Map<String, Integer>) chartData.get(entityName)).get(JOURNAL_ACTION_UPDATE)));
         }
     }
 
@@ -248,7 +247,10 @@ public class JournalChart extends ChartPortlet {
             Map<String, Integer> eventsNew;
             for (String entityName : chartData.keySet()) {
                 events = (Map<String, Integer>) chartData.get(entityName);
-                eventsNew = (Map<String, Integer>) newData.get(entityName);
+                eventsNew = newData.get(entityName) != null? (Map<String, Integer>) newData.get(entityName) : null ;
+                if(eventsNew == null) {
+                    return true;
+                }
 
                 if (!events.get(JOURNAL_ACTION_CREATE).equals(eventsNew.get(JOURNAL_ACTION_CREATE))
                         || !events.get(JOURNAL_ACTION_UPDATE).equals(eventsNew.get(JOURNAL_ACTION_UPDATE))) {

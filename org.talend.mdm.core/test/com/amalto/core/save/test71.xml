@@ -1,0 +1,6 @@
+<EntiteA xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<codeA>a1</codeA>
+  <format xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="Format_Entier">
+    <CodeUniteMesure>[e1]</CodeUniteMesure>
+  </format>
+</EntiteA>

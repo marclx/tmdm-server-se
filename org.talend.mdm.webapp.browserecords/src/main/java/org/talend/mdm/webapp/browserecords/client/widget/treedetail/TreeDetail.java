@@ -476,14 +476,19 @@ public class TreeDetail extends ContentPanel {
                 multiManager.handleOptIcons();
             }
         });
-        root = buildGWTTree(rootModel, null, false, operation);
+        
+        ColumnTreeLayoutModel columnLayoutModel = viewBean.getColumnLayoutModel();
+        ItemNodeModel customModel = rootModel;
+        if(columnLayoutModel != null && columnLayoutModel.getColumnTreeModels().size() > 0 ){
+            customModel = ViewUtil.transformToCustomLayoutModel(rootModel, columnLayoutModel.getColumnTreeModels());
+        }
+        root = buildGWTTree(customModel, null, false, operation);
         isFirstKey = true;
         root.setState(true);
         if (root.getElement().getFirstChildElement() != null) {
             root.getElement().getFirstChildElement().setClassName("rootNode"); //$NON-NLS-1$
         }
 
-        ColumnTreeLayoutModel columnLayoutModel = viewBean.getColumnLayoutModel();
         if (columnLayoutModel != null) {// TODO if create a new PrimaryKey, tree UI should not render according to the
                                         // layout template
             FlexTable htable = new FlexTable();

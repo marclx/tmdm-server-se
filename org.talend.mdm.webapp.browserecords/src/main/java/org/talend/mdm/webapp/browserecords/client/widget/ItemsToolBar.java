@@ -304,7 +304,7 @@ public class ItemsToolBar extends ToolBar {
     private void initToolBar() {
         addCreateButton();
         addDeleteButton();
-        if (((AppHeader) BrowseRecords.getSession().get(UserSession.APP_HEADER)).isEnterprise()) {
+        if (((AppHeader) BrowseRecords.getSession().get(UserSession.APP_HEADER)).isEnterprise() && isStaging()) {
             addSimulateMatchButton();
         }
         addImportAndExportButton();

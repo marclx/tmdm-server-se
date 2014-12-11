@@ -20,16 +20,12 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import com.amalto.core.save.generator.StorageAutoIncrementGenerator;
 import com.amalto.core.storage.*;
 import junit.framework.TestCase;
 
@@ -635,4 +631,179 @@ public class SystemStorageTest extends TestCase {
         }
     }
 
+    public void testAutoIncrementLock() throws Exception {
+        LOG.info("Setting up MDM server environment...");
+        ServerContext.INSTANCE.get(new MockServerLifecycle());
+        LOG.info("MDM server environment set.");
+
+        LOG.info("Preparing storage for tests...");
+        Storage storage = new SecuredStorage(new HibernateStorage("MDM", StorageType.SYSTEM), new SecuredStorage.UserDelegator() {
+
+            @Override
+            public boolean hide(FieldMetadata field) {
+                return false;
+            }
+
+            @Override
+            public boolean hide(ComplexTypeMetadata type) {
+                return false;
+            }
+        });
+        ClassRepository repository = new ClassRepository();
+        // Additional setup to get User type in repository
+        String[] models = new String[] { "/com/amalto/core/initdb/data/datamodel/CONF" //$NON-NLS-1$
+        };
+        for (String model : models) {
+            InputStream builtInStream = this.getClass().getResourceAsStream(model);
+            if (builtInStream == null) {
+                throw new RuntimeException("Built in model '" + model + "' cannot be found.");
+            }
+            try {
+                DataModelPOJO modelPOJO = ObjectPOJO.unmarshal(DataModelPOJO.class, IOUtils.toString(builtInStream, "UTF-8")); //$NON-NLS-1$
+                repository.load(new ByteArrayInputStream(modelPOJO.getSchema().getBytes("UTF-8"))); //$NON-NLS-1$
+            } catch (Exception e) {
+                throw new RuntimeException("Could not parse builtin data model '" + model + "'.", e);
+            } finally {
+                try {
+                    builtInStream.close();
+                } catch (IOException e) {
+                    // Ignored
+                }
+            }
+        }
+        storage.init(getDatasource("H2-Default"));
+        storage.prepare(repository, Collections.<Expression>emptySet(), true, true);
+        LOG.info("Storage prepared.");
+
+        StorageAutoIncrementGenerator generator = new StorageAutoIncrementGenerator(storage);
+        String firstEntityId = "0";
+        String secondEntityId = "0";
+        for (int i = 0; i < 10; i++) {
+            firstEntityId = generator.generateId("Test", "First", "id");
+            secondEntityId = generator.generateId("Test", "Second", "id");
+        }
+        assertEquals("10", firstEntityId);
+        assertEquals("10", secondEntityId);
+    }
+
+    public void testAutoIncrementConcurrentLock() throws Exception {
+        LOG.info("Setting up MDM server environment...");
+        ServerContext.INSTANCE.get(new MockServerLifecycle());
+        LOG.info("MDM server environment set.");
+
+        LOG.info("Preparing storage for tests...");
+        final Storage storage = new SecuredStorage(new HibernateStorage("MDM", StorageType.SYSTEM),
+                new SecuredStorage.UserDelegator() {
+
+                    @Override
+                    public boolean hide(FieldMetadata field) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean hide(ComplexTypeMetadata type) {
+                        return false;
+                    }
+                });
+        ClassRepository repository = new ClassRepository();
+        // Additional setup to get User type in repository
+        String[] models = new String[] { "/com/amalto/core/initdb/data/datamodel/CONF" //$NON-NLS-1$
+        };
+        for (String model : models) {
+            InputStream builtInStream = this.getClass().getResourceAsStream(model);
+            if (builtInStream == null) {
+                throw new RuntimeException("Built in model '" + model + "' cannot be found.");
+            }
+            try {
+                DataModelPOJO modelPOJO = ObjectPOJO.unmarshal(DataModelPOJO.class, IOUtils.toString(builtInStream, "UTF-8")); //$NON-NLS-1$
+                repository.load(new ByteArrayInputStream(modelPOJO.getSchema().getBytes("UTF-8"))); //$NON-NLS-1$
+            } catch (Exception e) {
+                throw new RuntimeException("Could not parse builtin data model '" + model + "'.", e);
+            } finally {
+                try {
+                    builtInStream.close();
+                } catch (IOException e) {
+                    // Ignored
+                }
+            }
+        }
+        storage.init(getDatasource("H2-Default"));
+        storage.prepare(repository, Collections.<Expression> emptySet(), true, true);
+        Set<String> generatedStrings = Collections.synchronizedSet(new HashSet<String>());
+        LOG.info("Storage prepared.");
+        int generationCount = 50;
+        AutoIncrementRunnable[] workers = new AutoIncrementRunnable[] {
+                new AutoIncrementRunnable(storage, "[1]", generatedStrings, generationCount),
+                new AutoIncrementRunnable(storage, "[2]", generatedStrings, generationCount),
+                new AutoIncrementRunnable(storage, "[3]", generatedStrings, generationCount),
+                new AutoIncrementRunnable(storage, "[4]", generatedStrings, generationCount),
+                new AutoIncrementRunnable(storage, "[5]", generatedStrings, generationCount)
+        };
+        // Concurrent usage of same database (but not same generator).
+        List<Thread> threads = new ArrayList<Thread>();
+        for (Runnable runnable : workers) {
+            threads.add(new Thread(runnable));
+        }
+        for (Thread thread : threads) {
+            thread.start();
+        }
+        for (Thread thread : threads) {
+            thread.join();
+        }
+        int totalDuplicate = 0;
+        for (AutoIncrementRunnable runnable : workers) {
+            totalDuplicate += runnable.getDuplicates();
+        }
+        // If concurrent updates were ok, next id should be (50 * runnable_count) + 1
+        StorageAutoIncrementGenerator generator = new StorageAutoIncrementGenerator(storage);
+        String entityId = generator.generateId("Test", "First", "id");
+        assertEquals(0, totalDuplicate);
+        assertEquals(String.valueOf((workers.length * generationCount) + 1), entityId);
+    }
+
+    private static class AutoIncrementRunnable implements Runnable {
+        
+        private final Storage storage;
+        
+        private final String name;
+
+        private final Set<String> generatedStrings;
+
+        private final int generationCount;
+
+        private int duplicateNumber = 0;
+
+        public AutoIncrementRunnable(Storage storage, String name, Set<String> generatedStrings, int count) {
+            this.storage = storage;
+            this.name = name;
+            this.generatedStrings = generatedStrings;
+            this.generationCount = count;
+        }
+
+        @Override
+        public void run() {
+            StorageAutoIncrementGenerator generator = new StorageAutoIncrementGenerator(storage);
+            Random random = new Random();
+            for (int i = 0; i < generationCount; i++) {
+                String id1 = generator.generateId("Test", "First", "id");
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(name + " " + id1);
+                }
+                boolean newDuplicate = !generatedStrings.add(id1);
+                if (newDuplicate) {
+                    LOG.error("Duplicate id: " + id1);
+                    duplicateNumber++;
+                }
+                try {
+                    Thread.sleep(random.nextInt(16));
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        public int getDuplicates() {
+            return duplicateNumber;
+        }
+    }
 }

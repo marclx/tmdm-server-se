@@ -156,7 +156,6 @@ public class StagingTask implements Task {
             startLock.set(true);
             startLock.notifyAll();
         }
-
         try {
             if (executionType == null) {
                 throw new IllegalStateException("Can not find internal type information for execution logging.");

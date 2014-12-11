@@ -18,19 +18,17 @@ import com.amalto.core.storage.record.DataRecord;
 import com.amalto.core.storage.record.DataRecordXmlWriter;
 import com.amalto.core.storage.record.ObjectDataRecordReader;
 import com.amalto.core.storage.transaction.StorageTransaction;
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.hibernate.HibernateException;
-import org.hibernate.ObjectNotFoundException;
-import org.hibernate.Transaction;
+import org.hibernate.*;
 import org.hibernate.classic.Session;
 import org.hibernate.engine.EntityKey;
 import org.hibernate.impl.SessionImpl;
 import org.talend.mdm.commmon.metadata.ComplexTypeMetadata;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 class HibernateStorageTransaction extends StorageTransaction {
 
@@ -261,8 +259,16 @@ class HibernateStorageTransaction extends StorageTransaction {
         return hasFailed;
     }
 
-    public Session getSession() {
-        return session;
+    public synchronized Session getSession() {
+        com.amalto.core.storage.transaction.Transaction.LockStrategy lockStrategy = getLockStrategy();
+        switch (lockStrategy) {
+            case NO_LOCK:
+                return session;
+            case LOCK_FOR_UPDATE:
+                return new LockUpdateSession(session);
+            default:
+                throw new NotImplementedException("No support for lock '" + lockStrategy + "'");
+        }
     }
 
     @Override
@@ -273,4 +279,5 @@ class HibernateStorageTransaction extends StorageTransaction {
                 ", initiatorThread=" + initiatorThread +
                 '}';
     }
+
 }

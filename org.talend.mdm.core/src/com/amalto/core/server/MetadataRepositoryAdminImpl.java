@@ -33,6 +33,9 @@ import org.talend.mdm.commmon.util.webapp.XSystemObjects;
 import java.io.ByteArrayInputStream;
 import java.util.*;
 
+import static com.amalto.core.query.user.UserQueryBuilder.from;
+import static com.amalto.core.query.user.UserQueryBuilder.isNull;
+
 class MetadataRepositoryAdminImpl implements MetadataRepositoryAdmin {
 
     private static final Logger LOGGER = Logger.getLogger(MetadataRepositoryAdminImpl.class);
@@ -71,6 +74,12 @@ class MetadataRepositoryAdminImpl implements MetadataRepositoryAdmin {
     }
 
     public Set<Expression> getIndexedExpressions(String dataModelName) {
+        if(XSystemObjects.DM_UPDATEREPORT.getName().equals(dataModelName)) { // Indexed expressions for UpdateReport
+            MetadataRepository repository = get(dataModelName);
+            // Index Concept field (used in JournalStatistics for the top N types)
+            ComplexTypeMetadata updateType = repository.getComplexType("Update"); //$NON-NLS-1$
+            return Collections.singleton(from(updateType).where(isNull(updateType.getField("Concept"))).getExpression()); //$NON-NLS-1$
+        }
         synchronized (metadataRepository) {
             ViewPOJO view = null;
             try {
@@ -86,7 +95,7 @@ class MetadataRepositoryAdminImpl implements MetadataRepositoryAdmin {
                         ComplexTypeMetadata userType = repository.getComplexType(typeName);
                         if (userType != null) {
                             if (qb == null) {
-                                qb = UserQueryBuilder.from(userType);
+                                qb = from(userType);
                             } else {
                                 qb.and(userType);
                             }

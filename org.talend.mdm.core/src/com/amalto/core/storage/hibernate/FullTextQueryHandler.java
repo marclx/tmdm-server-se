@@ -392,7 +392,7 @@ class FullTextQueryHandler extends AbstractQueryHandler {
 
     @Override
     public StorageResults visit(OrderBy orderBy) {
-        TypedExpression field = orderBy.getField();
+        TypedExpression field = orderBy.getExpression();
         if (field instanceof Field) {
             FieldMetadata fieldMetadata = ((Field) field).getFieldMetadata();
             SortField sortField = new SortField(fieldMetadata.getName(),

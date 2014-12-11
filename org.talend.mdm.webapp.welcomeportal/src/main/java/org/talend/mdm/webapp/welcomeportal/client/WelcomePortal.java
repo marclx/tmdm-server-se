@@ -103,6 +103,8 @@ public class WelcomePortal implements EntryPoint {
     }-*/;
 
     private native void _initUI()/*-{
+		var instance = this;
+
 		var tabPanel = $wnd.amalto.core.getTabPanel();
 		var panel = tabPanel.getItem("Welcome");
 		if (panel == undefined) {
@@ -113,6 +115,12 @@ public class WelcomePortal implements EntryPoint {
 			this.@org.talend.mdm.webapp.welcomeportal.client.WelcomePortal::refresh()();
 		}
 		tabPanel.setSelection(panel.getItemId());
+
+		var removeTabEvent = function(tabPanel, tabItem) {
+			instance.@org.talend.mdm.webapp.welcomeportal.client.WelcomePortal::removeWelcomePortal()();
+			return true;
+		};
+		tabPanel.on("beforeremove", removeTabEvent);
     }-*/;
 
     native JavaScriptObject createPanel()/*-{
@@ -186,6 +194,11 @@ public class WelcomePortal implements EntryPoint {
         Dispatcher dispatcher = Dispatcher.get();
         AppEvent event = new AppEvent(WelcomePortalEvents.RefreshPortal, portalConfig);
         dispatcher.getControllers().get(0).handleEvent(event);
+    }
+
+    public void removeWelcomePortal() {
+        Dispatcher dispatcher = Dispatcher.get();
+        ((WelcomePortalController) dispatcher.getControllers().get(0)).removeWelcomePortal();
     }
 
     private void onModuleRender() {
