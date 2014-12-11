@@ -26,7 +26,7 @@ public class StagingStatus implements MetadataField {
 
     public static final String STAGING_STATUS_ALIAS = "staging_status"; //$NON-NLS-1$
 
-    private static final String[] STAGING_STATUS_FIELD = new String[] { "$staging_status$", "metadata:staging_status" }; //$NON-NLS-1$ //$NON-NLS-2$
+    private static final String[] STAGING_STATUS_FIELD = new String[] { "$staging_status$", "metadata:staging_status", "staging_status" }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3
 
     private final PropertyReader propertyReader = new PropertyReader(Storage.METADATA_STAGING_STATUS);
 

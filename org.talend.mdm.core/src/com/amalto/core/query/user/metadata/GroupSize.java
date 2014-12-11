@@ -25,7 +25,7 @@ public class GroupSize implements MetadataField {
 
     public static final String GROUP_SIZE_ALIAS = "staging_group_size"; //$NON-NLS-1$
 
-    private static final String[] GROUP_SIZE_FIELD = new String[] { "metadata:staging_group_size" }; //$NON-NLS-1$
+    private static final String[] GROUP_SIZE_FIELD = new String[] { "metadata:staging_group_size", "group_size" }; //$NON-NLS-1$ //$NON-NLS-2
 
     private GroupSize() {
     }

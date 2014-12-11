@@ -26,7 +26,7 @@ public class Timestamp implements MetadataField {
 
     public static final String TIMESTAMP_ALIAS = "timestamp"; //$NON-NLS-1$
 
-    private static final String[] TIMESTAMP_FIELD = new String[] { "../../t", "metadata:timestamp" }; //$NON-NLS-1$ //$NON-NLS-2$
+    private static final String[] TIMESTAMP_FIELD = new String[] { "../../t", "metadata:timestamp", "timestamp" }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3
 
     private final Reader reader = new Reader() {
 

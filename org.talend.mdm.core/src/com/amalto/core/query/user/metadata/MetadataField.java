@@ -67,6 +67,15 @@ public interface MetadataField extends TypedExpression {
 
     class Factory {
 
+        /**
+         * Returns the first {@link com.amalto.core.query.user.metadata.MetadataField field} represented by
+         * <code>path</code>.
+         * 
+         * @param path A path (usually a metadata field name).
+         * @return The first {@link com.amalto.core.query.user.metadata.MetadataField field} to match the
+         * <code>path</code> or <code>null</code> if no candidate was found.
+         * @see com.amalto.core.query.user.metadata.MetadataField#matches(String)
+         */
         public static MetadataField getMetadataField(String path) {
             for (MetadataField metadataField : SUPPORTED_METADATA) {
                 if (metadataField.matches(path)) {

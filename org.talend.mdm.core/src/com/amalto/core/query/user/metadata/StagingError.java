@@ -26,7 +26,7 @@ public class StagingError implements MetadataField {
 
     public static final String STAGING_ERROR_ALIAS = "staging_error"; //$NON-NLS-1$
 
-    private static final String[] STAGING_ERROR_FIELD = new String[] { "$staging_error$", "metadata:staging_error" }; //$NON-NLS-1$ //$NON-NLS-2$
+    private static final String[] STAGING_ERROR_FIELD = new String[] { "$staging_error$", "metadata:staging_error", "staging_error" }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3
 
     private final PropertyReader propertyReader = new PropertyReader(Storage.METADATA_STAGING_ERROR);
 

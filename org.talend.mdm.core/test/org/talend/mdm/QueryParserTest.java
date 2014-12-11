@@ -1,15 +1,15 @@
 package org.talend.mdm;
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-
+import com.amalto.core.query.user.*;
+import com.amalto.core.query.user.metadata.*;
 import junit.framework.TestCase;
-
 import org.talend.mdm.commmon.metadata.MetadataRepository;
 import org.talend.mdm.query.QueryParser;
 
-import com.amalto.core.query.user.*;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  *
@@ -235,7 +235,7 @@ public class QueryParserTest extends TestCase {
         assertEquals("Contained2", ((Isa) condition).getType().getName());
         assertEquals(Field.class, ((Isa) condition).getExpression().getClass());
     }
-    
+
     public void testQuery15() {
         QueryParser parser = QueryParser.newParser(repository);
         Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query15.json")); //$NON-NLS-1$
@@ -285,5 +285,86 @@ public class QueryParserTest extends TestCase {
         assertNotNull(condition);
         assertEquals(FullText.class, condition.getClass());
         assertEquals("1", ((FullText) condition).getValue());
+    }
+
+    public void testQuery19() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query19.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        Class<TypedExpression>[] expectedProjections = new Class[] { Timestamp.class, TaskId.class, GroupSize.class,
+                StagingError.class, StagingSource.class, StagingStatus.class, StagingBlockKey.class };
+        int i = 0;
+        for (TypedExpression typedExpression : select.getSelectedFields()) {
+            assertEquals(expectedProjections[i++], typedExpression.getClass());
+        }
+    }
+
+    public void testQuery20() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query20.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        final List<Class<? extends MetadataField>> expectedMetadataFields = new ArrayList<Class<? extends MetadataField>>(
+                Arrays.asList(Timestamp.class, TaskId.class, GroupSize.class, StagingError.class, StagingSource.class,
+                        StagingStatus.class, StagingBlockKey.class));
+        select.getCondition().accept(new VisitorAdapter<Void>() {
+
+            @Override
+            public Void visit(Compare condition) {
+                condition.getLeft().accept(this);
+                return null;
+            }
+
+            @Override
+            public Void visit(BinaryLogicOperator condition) {
+                condition.getLeft().accept(this);
+                condition.getRight().accept(this);
+                return null;
+            }
+
+            @Override
+            public Void visit(TaskId taskId) {
+                expectedMetadataFields.remove(taskId.getClass());
+                return null;
+            }
+
+            @Override
+            public Void visit(StagingStatus stagingStatus) {
+                expectedMetadataFields.remove(stagingStatus.getClass());
+                return null;
+            }
+
+            @Override
+            public Void visit(StagingError stagingError) {
+                expectedMetadataFields.remove(stagingError.getClass());
+                return null;
+            }
+
+            @Override
+            public Void visit(StagingSource stagingSource) {
+                expectedMetadataFields.remove(stagingSource.getClass());
+                return null;
+            }
+
+            @Override
+            public Void visit(StagingBlockKey stagingBlockKey) {
+                expectedMetadataFields.remove(stagingBlockKey.getClass());
+                return null;
+            }
+
+            @Override
+            public Void visit(GroupSize groupSize) {
+                expectedMetadataFields.remove(groupSize.getClass());
+                return null;
+            }
+
+            @Override
+            public Void visit(Timestamp timestamp) {
+                expectedMetadataFields.remove(timestamp.getClass());
+                return null;
+            }
+        });
+        assertEquals(0, expectedMetadataFields.size());
     }
 }

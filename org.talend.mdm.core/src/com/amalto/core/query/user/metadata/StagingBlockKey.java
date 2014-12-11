@@ -26,7 +26,7 @@ public class StagingBlockKey implements MetadataField {
 
     public static final String STAGING_BLOCK_ALIAS = "staging_blockkey"; //$NON-NLS-1$
 
-    private static final String[] STAGING_BLOCK_FIELD = new String[] { "metadata:staging_blockkey" }; //$NON-NLS-1$
+    private static final String[] STAGING_BLOCK_FIELD = new String[] { "metadata:staging_blockkey", "staging_blockkey" }; //$NON-NLS-1$ //$NON-NLS-2
 
     private final PropertyReader propertyReader = new PropertyReader(Storage.METADATA_STAGING_BLOCK_KEY);
 

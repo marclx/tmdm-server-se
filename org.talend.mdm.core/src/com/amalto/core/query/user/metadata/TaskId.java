@@ -26,7 +26,7 @@ public class TaskId implements MetadataField {
 
     public static final String TASK_ID_ALIAS = "taskId"; //$NON-NLS-1$
 
-    private static final String[] TASK_ID_FIELD = new String[] { "../../taskId", "metadata:task_id" }; //$NON-NLS-1$ //$NON-NLS-2$
+    private static final String[] TASK_ID_FIELD = new String[] { "../../taskId", "metadata:task_id", "task_id" }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3
 
     private final Reader reader = new Reader() {
 

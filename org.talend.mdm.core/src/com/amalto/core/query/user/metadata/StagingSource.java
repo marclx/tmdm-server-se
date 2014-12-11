@@ -26,7 +26,7 @@ public class StagingSource implements MetadataField {
 
     public static final String STAGING_SOURCE_ALIAS = "staging_source"; //$NON-NLS-1$
 
-    private static final String[] STAGING_SOURCE_FIELD = new String[] { "$staging_source$", "metadata:staging_source" }; //$NON-NLS-1$ //$NON-NLS-2$
+    private static final String[] STAGING_SOURCE_FIELD = new String[] { "$staging_source$", "metadata:staging_source", "staging_source" }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3
 
     private final PropertyReader propertyReader = new PropertyReader(Storage.METADATA_STAGING_SOURCE);
 
