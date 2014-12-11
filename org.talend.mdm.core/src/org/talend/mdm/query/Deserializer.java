@@ -37,6 +37,8 @@ class Deserializer implements JsonDeserializer<Expression> {
             return IndexProcessor.INSTANCE;
         } else if (object.has("metadata")) {
             return MetadataFieldProcessor.INSTANCE;
+        } else if (object.has("distinct")) {
+            return DistinctProcessor.INSTANCE;
         } else {
             throw new NotImplementedException("No support for '" + object + "'.");
         }

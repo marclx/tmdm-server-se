@@ -389,4 +389,31 @@ public class QueryParserTest extends TestCase {
         assertEquals(Field.class, ((Compare) condition).getLeft().getClass());
         assertEquals(Field.class, ((Compare) condition).getRight().getClass());
     }
+
+    public void testQuery23() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query23.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        assertEquals(1, select.getSelectedFields().size());
+        TypedExpression typedExpression = select.getSelectedFields().get(0);
+        assertEquals(Distinct.class, typedExpression.getClass());
+        TypedExpression distinctExpression = ((Distinct) typedExpression).getExpression();
+        assertEquals(Field.class, distinctExpression.getClass());
+        assertEquals("id", ((Field) distinctExpression).getFieldMetadata().getName());
+    }
+
+    public void testQuery24() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query24.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        assertEquals(1, select.getSelectedFields().size());
+        TypedExpression typedExpression = select.getSelectedFields().get(0);
+        assertEquals(Alias.class, typedExpression.getClass());
+        assertEquals("taskId", ((Alias) typedExpression).getAliasName());
+        TypedExpression aliasedExpression = ((Alias) typedExpression).getTypedExpression();
+        assertEquals(Distinct.class, aliasedExpression.getClass());
+        assertEquals(TaskId.class, ((Distinct) aliasedExpression).getExpression().getClass());
+    }
 }
