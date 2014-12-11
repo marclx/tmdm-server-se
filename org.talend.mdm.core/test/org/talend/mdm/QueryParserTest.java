@@ -5,7 +5,6 @@ import com.amalto.core.query.user.Compare;
 import com.amalto.core.query.user.metadata.*;
 import junit.framework.TestCase;
 import org.talend.mdm.commmon.metadata.MetadataRepository;
-import org.talend.mdm.commmon.metadata.compare.*;
 import org.talend.mdm.query.QueryParser;
 
 import java.io.InputStream;
@@ -256,14 +255,14 @@ public class QueryParserTest extends TestCase {
         Select select = (Select) expression;
         assertEquals(2, select.getOrderBy().size());
         OrderBy orderBy = select.getOrderBy().get(0);
-        assertTrue(orderBy.getField() instanceof Field);
-        assertEquals("id", ((Field) orderBy.getField()).getFieldMetadata().getPath());
-        assertEquals("Type1", ((Field) orderBy.getField()).getFieldMetadata().getEntityTypeName());
+        assertTrue(orderBy.getExpression() instanceof Field);
+        assertEquals("id", ((Field) orderBy.getExpression()).getFieldMetadata().getPath());
+        assertEquals("Type1", ((Field) orderBy.getExpression()).getFieldMetadata().getEntityTypeName());
         assertEquals(OrderBy.Direction.DESC, orderBy.getDirection());
         orderBy = select.getOrderBy().get(1);
-        assertTrue(orderBy.getField() instanceof Field);
-        assertEquals("value1", ((Field) orderBy.getField()).getFieldMetadata().getPath());
-        assertEquals("Type1", ((Field) orderBy.getField()).getFieldMetadata().getEntityTypeName());
+        assertTrue(orderBy.getExpression() instanceof Field);
+        assertEquals("value1", ((Field) orderBy.getExpression()).getFieldMetadata().getPath());
+        assertEquals("Type1", ((Field) orderBy.getExpression()).getFieldMetadata().getEntityTypeName());
         assertEquals(OrderBy.Direction.ASC, orderBy.getDirection());
     }
 
@@ -424,6 +423,19 @@ public class QueryParserTest extends TestCase {
         Select select = (Select) expression;
         assertEquals(1, select.getOrderBy().size());
         OrderBy orderBy = select.getOrderBy().get(0);
+        assertEquals(Count.class, orderBy.getExpression().getClass());
+        assertEquals(Field.class, ((Count) orderBy.getExpression()).getExpression().getClass());
+    }
+
+    public void testQuery26() {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query26.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        assertEquals(1, select.getSelectedFields().size());
+        TypedExpression selectedField = select.getSelectedFields().get(0);
+        assertEquals(Alias.class, selectedField.getClass());
+        assertEquals(Count.class, ((Alias) selectedField).getTypedExpression().getClass());
     }
 
 }
