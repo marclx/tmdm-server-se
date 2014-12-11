@@ -190,6 +190,15 @@ class Deserializer implements JsonDeserializer<Expression> {
                     queryBuilder.orderBy(orderByExpression, direction);
                 }
             }
+            // Process cache option (optional)
+            if (select.has("cache")) { //$NON-NLS-1
+                boolean enableCache = select.get("cache").getAsBoolean(); //$NON-NLS-1
+                if (enableCache) {
+                    queryBuilder.cache();
+                } else {
+                    queryBuilder.nocache();
+                }
+            }
         } else {
             throw new IllegalArgumentException("Malformed query (expected a top level object).");
         }

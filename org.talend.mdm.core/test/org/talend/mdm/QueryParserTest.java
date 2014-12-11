@@ -367,4 +367,12 @@ public class QueryParserTest extends TestCase {
         });
         assertEquals(0, expectedMetadataFields.size());
     }
+
+    public void test21() throws Exception {
+        QueryParser parser = QueryParser.newParser(repository);
+        Expression expression = parser.parse(QueryParserTest.class.getResourceAsStream("query21.json")); //$NON-NLS-1$
+        assertTrue(expression instanceof Select);
+        Select select = (Select) expression;
+        assertTrue(select.cache());
+    }
 }
