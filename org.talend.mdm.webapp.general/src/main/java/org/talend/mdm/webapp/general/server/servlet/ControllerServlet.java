@@ -25,6 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
+import org.talend.mdm.commmon.util.core.MDMConfiguration;
 import org.talend.mdm.webapp.general.server.util.Utils;
 
 import com.amalto.core.util.LocaleUtil;
@@ -129,6 +130,11 @@ public class ControllerServlet extends HttpServlet {
         List<String> imports = Utils.getJavascriptImport();
         for (String js : imports) {
             html.append(js);
+        }
+        // Custom CSS entry point
+        String customCssUrl = MDMConfiguration.getConfiguration().getProperty("mdm.custom.css.url");
+        if (customCssUrl != null) {
+            html.append("<link rel='stylesheet' type='text/css' href='").append(customCssUrl).append("'/>\n"); //$NON-NLS-1$ //$NON-NLS-2$
         }
         html.append("</head>");
 
