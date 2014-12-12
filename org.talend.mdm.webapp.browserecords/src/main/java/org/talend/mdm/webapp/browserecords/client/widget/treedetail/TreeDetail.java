@@ -418,6 +418,7 @@ public class TreeDetail extends ContentPanel {
                         for (ModelData child : children) {
                             treeNode.add(child);
                         }
+                        buildGWTTree(treeNode, selectedItem, false, null);
                         if (typeModel.isAutoExpand()) {
                             renderCompleteCallBackList.add(new RenderCompleteCallBack() {
 
@@ -435,7 +436,6 @@ public class TreeDetail extends ContentPanel {
                             multiManager.warningAllItems();
                             multiManager.handleOptIcons();
                         }
-                        buildGWTTree(treeNode, selectedItem, false, null);
                     }
                 });
     }
