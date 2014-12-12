@@ -82,12 +82,16 @@ public class BrowseRecordsInStagingAction extends BrowseRecordsAction implements
 
         String criteria = config.getCriteria();
         String value;
-        int index;
-        if (criteria.contains("staging_status")) { //$NON-NLS-1$
-            String[] temp = criteria.split(" "); //$NON-NLS-1$
-            value = temp[temp.length - 1];
-            index = value.indexOf(")"); //$NON-NLS-1$
-            value = (index != -1) ? value.substring(0, index) : value;
+        int end;
+        int start;
+        int index = criteria.indexOf("staging_status"); //$NON-NLS-1$
+        if (index != -1) {
+            end = criteria.indexOf(')', index);
+            if (end == -1) {// for simple criteria
+                end = criteria.length();
+            }
+            start = criteria.lastIndexOf(' ', end - 1) + 1;
+            value = criteria.substring(start, end);
 
             if (!"*".equals(value) && !value.matches("\\d{3}")) { //$NON-NLS-1$ //$NON-NLS-2$
                 throw new ServiceException("Input for staging status code should be three-digit number"); //$NON-NLS-1$
