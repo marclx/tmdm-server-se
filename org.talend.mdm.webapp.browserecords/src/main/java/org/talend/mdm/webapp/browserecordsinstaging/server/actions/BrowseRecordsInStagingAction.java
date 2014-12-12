@@ -94,7 +94,7 @@ public class BrowseRecordsInStagingAction extends BrowseRecordsAction implements
             start = criteria.lastIndexOf(' ', end - 1) + 1;
             value = criteria.substring(start, end);
 
-            if (!"*".equals(value) && !value.matches("\\d{3}")) { //$NON-NLS-1$ //$NON-NLS-2$
+            if (!"*".equals(value) && !value.matches("\\d+")) { //$NON-NLS-1$ //$NON-NLS-2$
                 throw new ServiceException(MESSAGES.getMessage(locale, "status_format")); //$NON-NLS-1$
             }
         }

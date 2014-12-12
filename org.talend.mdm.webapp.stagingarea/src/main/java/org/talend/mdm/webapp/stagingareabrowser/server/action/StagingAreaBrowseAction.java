@@ -17,7 +17,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-import com.amalto.core.server.ServerContext;
 import org.apache.log4j.Logger;
 import org.talend.mdm.commmon.metadata.ComplexTypeMetadata;
 import org.talend.mdm.commmon.metadata.MetadataRepository;
@@ -29,8 +28,7 @@ import org.talend.mdm.webapp.stagingareabrowser.client.model.SearchModel;
 import org.talend.mdm.webapp.stagingareabrowser.client.view.SearchView;
 import org.w3c.dom.Document;
 
-import com.amalto.webapp.core.bean.Configuration;
-import com.amalto.webapp.core.util.Util;
+import com.amalto.core.server.ServerContext;
 import com.amalto.core.webservice.WSDataClusterPK;
 import com.amalto.core.webservice.WSStringArray;
 import com.amalto.core.webservice.WSStringPredicate;
@@ -39,6 +37,8 @@ import com.amalto.core.webservice.WSWhereCondition;
 import com.amalto.core.webservice.WSWhereItem;
 import com.amalto.core.webservice.WSWhereOperator;
 import com.amalto.core.webservice.WSXPathsSearch;
+import com.amalto.webapp.core.bean.Configuration;
+import com.amalto.webapp.core.util.Util;
 import com.extjs.gxt.ui.client.data.BaseModel;
 import com.extjs.gxt.ui.client.data.BasePagingLoadResult;
 import com.extjs.gxt.ui.client.data.PagingLoadResult;
@@ -88,11 +88,11 @@ public class StagingAreaBrowseAction implements StagingAreaBrowseService {
             whereItems.add(sourceWhere);
         }
 
-        String statusCode = searchModel.getStatusCode();
-        if (statusCode != null && statusCode.trim().length() > 0) {
+        Integer statusCode = searchModel.getStatusCode();
+        if (statusCode != null) {
             WSWhereItem statusWhere = new WSWhereItem();
             statusWhere.setWhereCondition(new WSWhereCondition(searchModel.getEntity() + "/$staging_status$", //$NON-NLS-1$
-                    WSWhereOperator.EQUALS, statusCode, WSStringPredicate.NONE, false));
+                    WSWhereOperator.EQUALS, statusCode.toString(), WSStringPredicate.NONE, false));
             whereItems.add(statusWhere);
         }
 
@@ -186,7 +186,7 @@ public class StagingAreaBrowseAction implements StagingAreaBrowseService {
                 String error = Util.getFirstTextNode(doc, "/result/staging_error"); //$NON-NLS-1$
                 String taskId = Util.getFirstTextNode(doc, "/result/taskId"); //$NON-NLS-1$
                 if (taskId == null || taskId.equals("null")) {
-                    taskId = "";//$NON-NLS-1$//$NON-NLS-2$
+                    taskId = "";//$NON-NLS-1$
                 }
                 ResultItem item = new ResultItem();
                 item.setKey(Util.joinStrings(key, ".")); //$NON-NLS-1$

@@ -27,7 +27,7 @@ public class SearchModel implements IsSerializable, Serializable {
 
     private Integer state;
 
-    private String statusCode;
+    private Integer statusCode;
 
     private Date startDate;
 
@@ -45,7 +45,7 @@ public class SearchModel implements IsSerializable, Serializable {
 
     }
 
-    public SearchModel(String entity, String source, String key, int state, String statusCode, Date startDate, Date endDate) {
+    public SearchModel(String entity, String source, String key, int state, Integer statusCode, Date startDate, Date endDate) {
         this.entity = entity;
         this.source = source;
         this.key = key;
@@ -87,11 +87,11 @@ public class SearchModel implements IsSerializable, Serializable {
         this.state = state;
     }
 
-    public String getStatusCode() {
+    public Integer getStatusCode() {
         return statusCode;
     }
 
-    public void setStatusCode(String statusCode) {
+    public void setStatusCode(Integer statusCode) {
         this.statusCode = statusCode;
     }
 
