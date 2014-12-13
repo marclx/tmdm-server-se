@@ -23,8 +23,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import com.amalto.core.util.LocalUser;
-import com.amalto.webapp.core.bean.Configuration;
 import org.apache.log4j.Logger;
 import org.talend.mdm.webapp.base.client.exception.ServiceException;
 import org.talend.mdm.webapp.general.model.GroupItem;
@@ -39,25 +37,20 @@ import org.xml.sax.SAXException;
 import com.amalto.commons.core.utils.XMLUtils;
 import com.amalto.core.util.Messages;
 import com.amalto.core.util.MessagesFactory;
-import com.amalto.webapp.core.util.Menu;
-import com.amalto.webapp.core.util.SystemLocale;
-import com.amalto.webapp.core.util.SystemLocaleFactory;
-import com.amalto.webapp.core.util.Util;
 import com.amalto.core.webservice.WSDataClusterPK;
 import com.amalto.core.webservice.WSDataModelPK;
 import com.amalto.core.webservice.WSGetItem;
 import com.amalto.core.webservice.WSItemPK;
 import com.amalto.core.webservice.WSPutItem;
+import com.amalto.webapp.core.bean.Configuration;
+import com.amalto.webapp.core.util.Menu;
+import com.amalto.webapp.core.util.SystemLocale;
+import com.amalto.webapp.core.util.SystemLocaleFactory;
+import com.amalto.webapp.core.util.Util;
 
 public class Utils {
 
     private static final Logger LOG = Logger.getLogger(Utils.class);
-
-    private static final String GXT_PROPERTIES = "gxt.properties"; //$NON-NLS-1$
-
-    private static final String EXCLUDING_PROPERTIES = "excluding.properties"; //$NON-NLS-1$
-
-    private static final String GXT_CSS_RESOURCES = "gxt_css_resource.xml"; //$NON-NLS-1$
 
     private static final String WELCOMECONTEXT = "welcomeportal", WELCOMEAPP = "WelcomePortal";//$NON-NLS-1$ //$NON-NLS-2$
 
@@ -66,9 +59,6 @@ public class Utils {
     private static final String PROVISIONING_CONCEPT = "User"; //$NON-NLS-1$
 
     private static final String DATACLUSTER_PK = "PROVISIONING"; //$NON-NLS-1$
-
-    /** a reference to the factory used to create Gxt instances */
-    private static GxtFactory gxtFactory = new GxtFactory(GXT_PROPERTIES, EXCLUDING_PROPERTIES, GXT_CSS_RESOURCES);
 
     private static final Messages MESSAGES = MessagesFactory.getMessages(
             "org.talend.mdm.webapp.general.client.i18n.GeneralMessages", Utils.class.getClassLoader()); //$NON-NLS-1$
@@ -90,7 +80,7 @@ public class Utils {
                 context = "journal"; //$NON-NLS-1$
                 application = "Journal"; //$NON-NLS-1$
             }
-            if (gxtFactory.isExcluded(context, application)) {
+            if (GxtFactory.getInstance().isExcluded(context, application)) {
                 continue;
             }
             MenuBean item = new MenuBean();
@@ -149,16 +139,13 @@ public class Utils {
             Menu subMenu = menu.getSubMenus().get(key);
 
             if (subMenu.getContext() != null) {
-                if (gxtFactory.isExcluded(subMenu.getContext(), subMenu.getApplication())) {
+                if (GxtFactory.getInstance().isExcluded(subMenu.getContext(), subMenu.getApplication())) {
                     continue;
                 }
-                GxtProjectModel gxtPro = gxtFactory.getGxtCss(subMenu.getContext(), subMenu.getApplication());
-                if (gxtPro != null) {
-                    List<String> csses = gxtPro.getCss_addresses();
-                    if (csses != null) {
-                        for (String css : csses) {
-                            imports.add("<link rel='stylesheet' type='text/css' href='" + css + "'/>\n"); //$NON-NLS-1$ //$NON-NLS-2$
-                        }
+                String[] csses = GxtFactory.getInstance().getGxtCss(subMenu.getContext(), subMenu.getApplication());
+                if (csses != null) {
+                    for (String css : csses) {
+                        imports.add("<link rel='stylesheet' type='text/css' href='" + css + "'/>\n"); //$NON-NLS-1$ //$NON-NLS-2$
                     }
                 }
                 i++;
@@ -189,10 +176,10 @@ public class Utils {
                     context = "journal"; //$NON-NLS-1$
                     application = "Journal"; //$NON-NLS-1$
                 }
-                if (gxtFactory.isExcluded(context, application)) {
+                if (GxtFactory.getInstance().isExcluded(context, application)) {
                     continue;
                 }
-                String gxtEntryModule = gxtFactory.getGxtEntryModule(context, application);
+                String gxtEntryModule = GxtFactory.getInstance().getGxtEntryModule(context, application);
 
                 if (gxtEntryModule == null || context.equals("itemsbrowser2")) { //$NON-NLS-1$
                     String tmp = "<script type=\"text/javascript\" src=\"/" + context + "/secure/dwr/interface/" //$NON-NLS-1$ //$NON-NLS-2$

@@ -10,6 +10,4 @@
  <source path='shared' />
  <source path='model' />
 
- <stylesheet src='../RecycleBin.css' />
-
 </module>

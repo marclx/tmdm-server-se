@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<resources>
-	<project context="browserecords" application="BrowseRecords" module="browserecords">
-		<style src="/browserecords/BrowseRecords.css"/>
-	</project>
-</resources>

@@ -8,6 +8,4 @@
     <source path='shared' />
     <source path='model' />
 
-    <!-- <stylesheet src='/core/secure/gxt/resources/css/gxt-all.css' /> -->
-
 </module>

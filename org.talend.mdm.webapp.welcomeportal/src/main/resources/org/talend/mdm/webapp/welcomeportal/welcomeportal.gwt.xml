@@ -15,6 +15,4 @@
  <source path='client' />
  <source path='shared' />
 
- <stylesheet src='../WelcomePortal.css' />
-
 </module>
