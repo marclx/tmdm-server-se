@@ -238,42 +238,13 @@ class MappingExpressionTransformer extends VisitorAdapter<Expression> {
         FieldMetadata mappedFieldMetadata = getMapping(fieldMetadata);
         // Compute the path from entity to field
         ComplexTypeMetadata entity = fieldMetadata.getContainingType().getEntity();
-        List<FieldMetadata> mappingPath;
-        ComplexTypeMetadata mainType = builder.getSelect().getTypes().get(0);
-        if (!entity.equals(mainType)) { // Field is not in the main (first selected type) type, build path from join clause.
-            List<Join> joins = builder.getSelect().getJoins();
-            if (!joins.isEmpty()) {
-                List<FieldMetadata> joinPath = new LinkedList<FieldMetadata>();
-                joinPath.add(fieldMetadata);
-                FieldMetadata currentField = fieldMetadata;
-                while (!joinPath.get(0).getContainingType().equals(mainType)) {
-                    boolean foundMatchingJoin = false;
-                    for (Join join : joins) {
-                        ComplexTypeMetadata rightType = join.getRightField().getFieldMetadata().getContainingType();
-                        if (rightType.equals(currentField.getContainingType())) {
-                            currentField = join.getLeftField().getFieldMetadata();
-                            joinPath.add(0, currentField);
-                            foundMatchingJoin = true;
-                            break;
-                        }
-                    }
-                    if (!foundMatchingJoin) {
-                        // Cannot find a path in join: it'll be up to the storage to find a path (if needed).
-                        break;
-                    }
-                }
-                mappingPath = joinPath;
-            } else {
-                mappingPath = Collections.emptyList();
-            }
-        } else { // Field is in entity (could be a nested field).
-            List<FieldMetadata> path = StorageMetadataUtils.path(entity, fieldMetadata);
-            mappingPath = new ArrayList<FieldMetadata>(path.size());
-            for (FieldMetadata pathElement : path) {
-                FieldMetadata mappedField = getMapping(pathElement);
-                if (mappedField != null) {
-                    mappingPath.add(mappedField);
-                }
+        // Field is in entity (could be a nested field).
+        List<FieldMetadata> path = StorageMetadataUtils.path(entity, fieldMetadata);
+        List<FieldMetadata> mappingPath = new ArrayList<FieldMetadata>(path.size());
+        for (FieldMetadata pathElement : path) {
+            FieldMetadata mappedField = getMapping(pathElement);
+            if (mappedField != null) {
+                mappingPath.add(mappedField);
             }
         }
         // Create the new field (target is the mapping in database, and contains the path to field if any needs to be set).

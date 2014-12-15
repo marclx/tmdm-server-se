@@ -3003,31 +3003,16 @@ public class StorageQueryTest extends StorageTestCase {
         assertTrue(expectedResults.isEmpty());
     }
     
-    public void testFKInReusebleTypeWithViewSearch() throws Exception {
+    public void testFKInReusableTypeWithViewSearch() throws Exception {
         UserQueryBuilder qb = from(organization).selectId(organization)
-                .select(organization.getField("org_address/city"))
-                .select(organization.getField("post_address/city"));
+                .select(alias(organization.getField("org_address/city"), "city1"))
+                .select(alias(organization.getField("post_address/city"), "city2"));
         StorageResults results = storage.fetch(qb.getSelect());
         assertEquals(1, results.getCount());
-        DataRecordWriter writer = new ViewSearchResultsWriter();
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        String resultAsString = "";
         for (DataRecord result : results) {
-            try {
-                writer.write(result, output);
-            } catch (IOException e) {
-                throw new XmlServerException(e);
-            }
-            resultAsString += new String(output.toByteArray(), Charset.forName("UTF-8"));            
-            output.reset();
-        }        
-
-        String startRoot = "<result xmlns:metadata=\"http://www.talend.com/mdm/metadata\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">";
-        String endRoot = "</result>";
-        
-        String expectedResult = startRoot
-                + "<org_id>1</org_id><city>[SH]</city><city>[BJ]</city>" + endRoot;        
-        assertTrue(expectedResult.equals(resultAsString.replaceAll("\\r|\\n|\\t", "")));
+            assertEquals("SH", String.valueOf(result.get("city1")));
+            assertEquals("BJ", String.valueOf(result.get("city2")));
+        }
     }
 
     public void testStringFieldConstraint() throws Exception {

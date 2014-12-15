@@ -188,12 +188,16 @@ public class StorageMetadataUtils {
     public static Set<List<FieldMetadata>> paths(ComplexTypeMetadata type, FieldMetadata target) {
         Stack<FieldMetadata> path = new Stack<FieldMetadata>();
         HashSet<List<FieldMetadata>> foundPaths = new HashSet<List<FieldMetadata>>();
-        _paths(type, target, path, foundPaths);
+        _paths(type, target, path, foundPaths, new HashSet<TypeMetadata>());
         return foundPaths;
     }
 
     private static void _paths(ComplexTypeMetadata type, FieldMetadata target, Stack<FieldMetadata> currentPath,
-            Set<List<FieldMetadata>> foundPaths) {
+            Set<List<FieldMetadata>> foundPaths, Set<TypeMetadata> processedTypes) {
+        // Prevent infinite loop (in case of recursive relations)
+        if (!processedTypes.add(type)) {
+            return;
+        }
         // Various optimizations for very simple cases
         if (type == null) {
             throw new IllegalArgumentException("Origin can not be null");
@@ -213,22 +217,22 @@ public class StorageMetadataUtils {
             }
             if (current instanceof ContainedTypeFieldMetadata) {
                 ComplexTypeMetadata containedType = ((ContainedTypeFieldMetadata) current).getContainedType();
-                _paths(containedType, target, currentPath, foundPaths);
+                _paths(containedType, target, currentPath, foundPaths, processedTypes);
                 for (ComplexTypeMetadata subType : containedType.getSubTypes()) {
                     for (FieldMetadata field : subType.getFields()) {
                         if (field.getDeclaringType().equals(subType)) {
-                            _paths(subType, target, currentPath, foundPaths);
+                            _paths(subType, target, currentPath, foundPaths, processedTypes);
                         }
                     }
                 }
             } else if (current instanceof ReferenceFieldMetadata) {
                 ComplexTypeMetadata referencedType = ((ReferenceFieldMetadata) current).getReferencedType();
                 if (!referencedType.isInstantiable()) {
-                    _paths(referencedType, target, currentPath, foundPaths);
+                    _paths(referencedType, target, currentPath, foundPaths, processedTypes);
                     for (ComplexTypeMetadata subType : referencedType.getSubTypes()) {
                         for (FieldMetadata field : subType.getFields()) {
                             if (field.getDeclaringType() == subType) {
-                                _paths(subType, target, currentPath, foundPaths);
+                                _paths(subType, target, currentPath, foundPaths, processedTypes);
                             }
                         }
                     }
