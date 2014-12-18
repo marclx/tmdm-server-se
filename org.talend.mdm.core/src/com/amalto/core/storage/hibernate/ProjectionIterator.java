@@ -203,7 +203,7 @@ class ProjectionIterator implements CloseableIterator<DataRecord> {
         }
 
         private void createReferenceElement(ReferenceFieldMetadata fieldMetadata) {
-            FieldMetadata field = new ReferenceFieldMetadata(explicitProjectionType, false, false, false,
+            FieldMetadata field = new ReferenceFieldMetadata(fieldMetadata.getContainingType(), false, false, false,
                     fieldMetadata.getName(), fieldMetadata.getReferencedType(), fieldMetadata.getReferencedField(),
                     fieldMetadata.getForeignKeyInfoFields(), false, false, new SimpleTypeMetadata(
                             XMLConstants.W3C_XML_SCHEMA_NS_URI, Types.STRING), Collections.<String> emptyList(),

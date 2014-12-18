@@ -3014,6 +3014,33 @@ public class StorageQueryTest extends StorageTestCase {
             assertEquals("BJ", String.valueOf(result.get("city2")));
         }
     }
+    
+    public void testFKInreusableTypeWithViewSearch2() throws Exception {
+        UserQueryBuilder qb = from(organization).selectId(organization)
+                .select(organization.getField("org_address/city"))
+                .select(organization.getField("post_address/city"));
+        StorageResults results = storage.fetch(qb.getSelect());
+        assertEquals(1, results.getCount());
+        DataRecordWriter writer = new ViewSearchResultsWriter();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        String resultAsString = "";
+        for (DataRecord result : results) {
+            try {
+                writer.write(result, output);
+            } catch (IOException e) {
+                throw new XmlServerException(e);
+            }
+            resultAsString = new String(output.toByteArray(), Charset.forName("UTF-8"));            
+            output.reset();
+        }        
+
+        String startRoot = "<result xmlns:metadata=\"http://www.talend.com/mdm/metadata\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">";
+        String endRoot = "</result>";
+        
+        String expectedResult = startRoot +
+                 "<org_id>1</org_id><city>[SH]</city><city>[BJ]</city>"  + endRoot;        
+        assertTrue(expectedResult.equals(resultAsString.replaceAll("\\r|\\n|\\t", "")));
+    }
 
     public void testStringFieldConstraint() throws Exception {
         DataRecordReader<String> factory = new XmlStringDataRecordReader();
