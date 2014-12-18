@@ -386,7 +386,21 @@ amalto.itemsbrowser.SearchEntity.bundle.onReady(function(){
 	        Ext.apply(this.store1.baseParams,{
 	          regex: this.criteria
 	        });
-	    }
+	    },
+	    
+	    afterRender : function() {
+	    	amalto.itemsbrowser.SearchEntityPanel.superclass.afterRender.call(this);  
+			var ua = navigator.userAgent.toLowerCase();
+			check = function(r){ 
+				return r.test(ua); 
+			};
+			var isChrome = check(/chrome/);
+			
+			if(isChrome){
+			    var chromeDatePickerCSS = ".x-date-picker {width: 175px;}";
+			    Ext.util.CSS.createStyleSheet(chromeDatePickerCSS,'chromeDatePickerStyle');
+			}
+		}
 	}
 	); 
 });
