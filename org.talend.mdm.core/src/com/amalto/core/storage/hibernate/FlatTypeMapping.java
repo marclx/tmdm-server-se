@@ -188,9 +188,11 @@ class FlatTypeMapping extends TypeMapping {
 
     @Override
     public DataRecord setValues(Wrapper from, DataRecord to) {
+        if (from == null) {
+            return to;
+        }
         StorageClassLoader contextClassLoader = (StorageClassLoader) Thread.currentThread().getContextClassLoader();
         ComplexTypeMetadata typeFromClass = contextClassLoader.getTypeFromClass(from.getClass());
-
         for (FieldMetadata field : typeFromClass.getFields()) {
             FieldMetadata userField = getUser(field);
             String fieldName = field.getName();

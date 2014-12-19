@@ -1182,28 +1182,28 @@ public class HibernateStorage implements Storage {
                             // Empty values from intermediate tables to this non instantiable type and unset inbound
                             // references
                             for (ReferenceFieldMetadata reference : references) {
-                                if (!reference.isMandatory()) {
-                                    if (reference.isMany()) {
-                                        String formattedTableName = tableResolver.getCollectionTable(reference);
-                                        session.createSQLQuery("delete from " + formattedTableName).executeUpdate(); //$NON-NLS-1$
+                                if (reference.isMany()) {
+                                    // No need to check for mandatory collections of references since constraint cannot
+                                    // be expressed in db schema
+                                    String formattedTableName = tableResolver.getCollectionTable(reference);
+                                    session.createSQLQuery("delete from " + formattedTableName).executeUpdate(); //$NON-NLS-1$
+                                } else if(!reference.isMandatory()) {
+                                    String referenceTableName = tableResolver.get(reference.getContainingType());
+                                    List<String> fkColumnNames;
+                                    if (reference.getReferencedField() instanceof CompoundFieldMetadata) {
+                                        FieldMetadata[] fields = ((CompoundFieldMetadata) reference.getReferencedField())
+                                                .getFields();
+                                        fkColumnNames = new ArrayList<String>(fields.length);
+                                        for (FieldMetadata field : fields) {
+                                            fkColumnNames.add(tableResolver.get(field, reference.getName()));
+                                        }
                                     } else {
-                                        String referenceTableName = tableResolver.get(reference.getContainingType());
-                                        List<String> fkColumnNames;
-                                        if (reference.getReferencedField() instanceof CompoundFieldMetadata) {
-                                            FieldMetadata[] fields = ((CompoundFieldMetadata) reference.getReferencedField())
-                                                    .getFields();
-                                            fkColumnNames = new ArrayList<String>(fields.length);
-                                            for (FieldMetadata field : fields) {
-                                                fkColumnNames.add(tableResolver.get(field, reference.getName()));
-                                            }
-                                        } else {
-                                            fkColumnNames = Collections.singletonList(tableResolver.get(
-                                                    reference.getReferencedField(), reference.getName()));
-                                        }
-                                        for (String fkColumnName : fkColumnNames) {
-                                            session.createSQLQuery(
-                                                    "update " + referenceTableName + " set " + fkColumnName + " = NULL").executeUpdate(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-                                        }
+                                        fkColumnNames = Collections.singletonList(tableResolver.get(
+                                                reference.getReferencedField(), reference.getName()));
+                                    }
+                                    for (String fkColumnName : fkColumnNames) {
+                                        session.createSQLQuery(
+                                                "update " + referenceTableName + " set " + fkColumnName + " = NULL").executeUpdate(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                                     }
                                 }
                             }
