@@ -11,6 +11,8 @@
 package com.amalto.core.storage.hibernate;
 
 import java.io.IOException;
+import java.io.Reader;
+import java.sql.Clob;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,13 +20,39 @@ import java.util.Set;
 
 import javax.xml.XMLConstants;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.hibernate.ScrollableResults;
-import org.talend.mdm.commmon.metadata.*;
+import org.talend.mdm.commmon.metadata.AliasedFieldMetadata;
+import org.talend.mdm.commmon.metadata.ComplexTypeMetadata;
+import org.talend.mdm.commmon.metadata.ComplexTypeMetadataImpl;
+import org.talend.mdm.commmon.metadata.CompoundFieldMetadata;
+import org.talend.mdm.commmon.metadata.FieldMetadata;
+import org.talend.mdm.commmon.metadata.MetadataUtils;
+import org.talend.mdm.commmon.metadata.ReferenceFieldMetadata;
+import org.talend.mdm.commmon.metadata.SimpleTypeFieldMetadata;
+import org.talend.mdm.commmon.metadata.SimpleTypeMetadata;
+import org.talend.mdm.commmon.metadata.TypeMetadata;
+import org.talend.mdm.commmon.metadata.Types;
 
-import com.amalto.core.query.user.*;
-import com.amalto.core.query.user.metadata.*;
+import com.amalto.core.query.user.Alias;
+import com.amalto.core.query.user.Count;
+import com.amalto.core.query.user.Distinct;
+import com.amalto.core.query.user.Field;
+import com.amalto.core.query.user.Max;
+import com.amalto.core.query.user.Min;
+import com.amalto.core.query.user.StringConstant;
+import com.amalto.core.query.user.Type;
+import com.amalto.core.query.user.TypedExpression;
+import com.amalto.core.query.user.VisitorAdapter;
+import com.amalto.core.query.user.metadata.GroupSize;
+import com.amalto.core.query.user.metadata.StagingBlockKey;
+import com.amalto.core.query.user.metadata.StagingError;
+import com.amalto.core.query.user.metadata.StagingSource;
+import com.amalto.core.query.user.metadata.StagingStatus;
+import com.amalto.core.query.user.metadata.TaskId;
+import com.amalto.core.query.user.metadata.Timestamp;
 import com.amalto.core.storage.Storage;
 import com.amalto.core.storage.record.DataRecord;
 import com.amalto.core.storage.record.metadata.UnsupportedDataRecordMetadata;
@@ -343,6 +371,15 @@ class ProjectionIterator implements CloseableIterator<DataRecord> {
                 // Only include composite FK value if there's an actual key value.
                 currentElement.value = isNullValue(fieldValues) ? null : fieldValues;
                 currentIndex += length;
+            } else if (fieldMetadata.getType().getData(TypeMapping.SQL_TYPE) != null
+                    && TypeMapping.SQL_TYPE_CLOB.equals(fieldMetadata.getType().getData(TypeMapping.SQL_TYPE))) {
+                try {
+                    Reader characterStream = ((Clob) values[currentIndex++]).getCharacterStream();
+                    currentElement.value = new String(IOUtils.toCharArray(characterStream));
+                } catch (Exception e) {
+                    currentElement.value = ""; //$NON-NLS-1$
+                    throw new RuntimeException("Unexpected read from clob exception", e);
+                }
             } else {
                 currentElement.value = values[currentIndex++];
             }
