@@ -3006,19 +3006,25 @@ public class StorageQueryTest extends StorageTestCase {
     public void testFKInReusableTypeWithViewSearch() throws Exception {
         UserQueryBuilder qb = from(organization).selectId(organization)
                 .select(alias(organization.getField("org_address/city"), "city1"))
-                .select(alias(organization.getField("post_address/city"), "city2"));
+                .select(alias(organization.getField("org_address/street"), "street1"))
+                .select(alias(organization.getField("post_address/city"), "city2"))
+                .select(alias(organization.getField("post_address/street"), "street2"));
         StorageResults results = storage.fetch(qb.getSelect());
         assertEquals(1, results.getCount());
         for (DataRecord result : results) {
             assertEquals("SH", String.valueOf(result.get("city1")));
+            assertEquals("waitan rd", String.valueOf(result.get("street1")));
             assertEquals("BJ", String.valueOf(result.get("city2")));
+            assertEquals("changan rd", String.valueOf(result.get("street2")));
         }
     }
     
     public void testFKInreusableTypeWithViewSearch2() throws Exception {
         UserQueryBuilder qb = from(organization).selectId(organization)
                 .select(organization.getField("org_address/city"))
-                .select(organization.getField("post_address/city"));
+                .select(organization.getField("org_address/street"))
+                .select(organization.getField("post_address/city"))
+                .select(organization.getField("post_address/street"));
         StorageResults results = storage.fetch(qb.getSelect());
         assertEquals(1, results.getCount());
         DataRecordWriter writer = new ViewSearchResultsWriter();
@@ -3033,12 +3039,11 @@ public class StorageQueryTest extends StorageTestCase {
             resultAsString = new String(output.toByteArray(), Charset.forName("UTF-8"));            
             output.reset();
         }        
-
         String startRoot = "<result xmlns:metadata=\"http://www.talend.com/mdm/metadata\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">";
         String endRoot = "</result>";
         
         String expectedResult = startRoot +
-                 "<org_id>1</org_id><city>[SH]</city><city>[BJ]</city>"  + endRoot;        
+                 "<org_id>1</org_id><city>[SH]</city><street>waitan rd</street><city>[BJ]</city><street>changan rd</street>"  + endRoot;        
         assertTrue(expectedResult.equals(resultAsString.replaceAll("\\r|\\n|\\t", "")));
     }
 
