@@ -102,6 +102,11 @@ public class ViewSearchResultsWriter implements DataRecordWriter {
                 }
             }
         }
+        if (fieldMetadata instanceof AliasedFieldMetadata && ((AliasedFieldMetadata)fieldMetadata).getAliasedField() instanceof ReferenceFieldMetadata) {
+            if (!stringValue.startsWith("[")) { //$NON-NLS-1$
+                stringValue = "[" + StorageMetadataUtils.toString(value, ((ReferenceFieldMetadata) ((AliasedFieldMetadata)fieldMetadata).getAliasedField()).getReferencedField()) + ']'; //$NON-NLS-1$
+            }
+        }
         out.append(StringEscapeUtils.escapeXml(stringValue));
     }
 

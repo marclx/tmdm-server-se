@@ -3058,8 +3058,8 @@ public class StorageQueryTest extends StorageTestCase {
         UserQueryBuilder qb = from(organization).selectId(organization)
                 .select(organization.getField("org_address/city"))
                 .select(organization.getField("org_address/street"))
-                .select(organization.getField("post_address/city"))
-                .select(organization.getField("post_address/street"));
+                .select(alias(organization.getField("post_address/city"), "city"))
+                .select(alias(organization.getField("post_address/street"), "street"));
         StorageResults results = storage.fetch(qb.getSelect());
         assertEquals(1, results.getCount());
         DataRecordWriter writer = new ViewSearchResultsWriter();
