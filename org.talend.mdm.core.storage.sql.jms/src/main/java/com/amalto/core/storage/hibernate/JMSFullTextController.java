@@ -7,6 +7,8 @@ import com.amalto.core.storage.StorageType;
 import com.amalto.core.storage.transaction.StorageTransaction;
 import org.apache.log4j.Logger;
 import org.hibernate.Session;
+import org.hibernate.Transaction;
+import org.hibernate.search.backend.BackendQueueProcessorFactory;
 import org.hibernate.search.backend.LuceneWork;
 import org.hibernate.search.backend.impl.jms.AbstractJMSHibernateSearchController;
 import org.hibernate.search.engine.SearchFactoryImplementor;
@@ -15,6 +17,7 @@ import org.hibernate.search.util.ContextHelper;
 import javax.ejb.EJBException;
 import javax.ejb.MessageDrivenBean;
 import javax.ejb.MessageDrivenContext;
+import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.ObjectMessage;
 import java.util.List;
@@ -27,7 +30,15 @@ import java.util.List;
  */
 public class JMSFullTextController extends AbstractJMSHibernateSearchController implements MessageDrivenBean {
 
-    public static final Logger        LOGGER            = Logger.getLogger(JMSFullTextController.class);
+    private static final Logger   LOGGER = Logger.getLogger(JMSFullTextController.class);
+
+    private static final Runnable EMPTY  = new Runnable() {
+
+                                             @Override
+                                             public void run() {
+                                                 // Nothing to do.
+                                             }
+                                         };
 
     @Override
     protected Session getSession() {
@@ -48,29 +59,48 @@ public class JMSFullTextController extends AbstractJMSHibernateSearchController 
     public void onMessage(Message message) {
         LOGGER.info("Processing work...");
         if (!(message instanceof ObjectMessage)) {
-            LOGGER.error("Incorrect message type: '" + message.getClass() + "'.");
+            LOGGER.error("Incorrect message type: '" + message.getClass() + "' (expected: " + ObjectMessage.class.getName()
+                    + ").");
             return;
         }
-        Runnable worker = getWorker((ObjectMessage) message);
-        worker.run();
+        getWorker((ObjectMessage) message).run();
     }
 
-    private Runnable getWorker(ObjectMessage message) {
+    private static Runnable getWorker(ObjectMessage message) {
         StorageAdmin admin = ServerContext.INSTANCE.get().getStorageAdmin();
         String[] containers = admin.getAll(null);
-        Storage storage = null;
-        StorageClassLoader classLoader = null;
         for (String container : containers) {
-            storage = admin.get(container, StorageType.MASTER, null);
-            if (storage.asInternal() instanceof HibernateStorage) {
-                HibernateStorage hibernateStorage = (HibernateStorage) storage.asInternal();
-                classLoader = hibernateStorage.getClassLoader();
-                ClassLoader previous = Thread.currentThread().getContextClassLoader();
+            Storage storage = admin.get(container, StorageType.MASTER, null);
+            // Storage might be hidden, call asInternal() to get actual storage.
+            Storage internal = storage.asInternal();
+            if (internal instanceof HibernateStorage) {
+                final HibernateStorage hibernateStorage = (HibernateStorage) internal;
+                StorageClassLoader classLoader = hibernateStorage.getClassLoader();
+                final ClassLoader previous = Thread.currentThread().getContextClassLoader();
                 try {
-                    Thread.currentThread().setContextClassLoader(classLoader);
-                    message.getObject();
-                    storage = hibernateStorage;
-                    break; // Found storage and class loader, exit.
+                    Thread.currentThread().setContextClassLoader(classLoader); // Need dynamically generated classes.
+                    message.getObject(); // Throw no class found if storage isn't correct
+                    // Found storage, run the full text update
+                    StorageTransaction transaction = storage.newStorageTransaction();
+                    Session session = ((HibernateStorageTransaction) transaction).getSession();
+                    SearchFactoryImplementor factory = ContextHelper.getSearchFactory(session);
+                    BackendQueueProcessorFactory queueProcessorFactory = factory.getBackendQueueProcessorFactory();
+                    final Transaction hibernateTransaction = session.beginTransaction();
+                    final Runnable processor = queueProcessorFactory.getProcessor((List<LuceneWork>) message.getObject());
+                    return new Runnable() {
+
+                        @Override
+                        public void run() {
+                            try {
+                                processor.run();
+                                if (!hibernateTransaction.wasCommitted() && !hibernateTransaction.wasRolledBack()) {
+                                    hibernateTransaction.commit();
+                                }
+                            } finally {
+                                Thread.currentThread().setContextClassLoader(previous);
+                            }
+                        }
+                    };
                 } catch (Exception e) {
                     // Ignored
                     if (LOGGER.isDebugEnabled()) {
@@ -81,41 +111,17 @@ public class JMSFullTextController extends AbstractJMSHibernateSearchController 
                 }
             }
         }
-        Runnable empty = new Runnable() {
-
-            @Override
-            public void run() {
-                // Nothing to do.
-            }
-        };
-        if (storage == null || classLoader == null) {
-            LOGGER.error("Unable to find storage for class '" + message + "'. Discarding index update.");
-            return empty;
-        }
-        StorageTransaction transaction = storage.newStorageTransaction();
-        Session session = ((HibernateStorageTransaction) transaction).getSession();
-        session.beginTransaction();
-        final ClassLoader previous = Thread.currentThread().getContextClassLoader();
+        // Unable to find the storage, discard unit of work.
         try {
-            Thread.currentThread().setContextClassLoader(classLoader);
-            SearchFactoryImplementor factory = ContextHelper.getSearchFactory(session);
-            final Runnable processor = factory.getBackendQueueProcessorFactory().getProcessor((List<LuceneWork>) message.getObject());
-            return new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        processor.run();
-                    } finally {
-                        Thread.currentThread().setContextClassLoader(previous);
-                    }
-                }
-            };
-        } catch (Exception e) {
-            LOGGER.error("Unable to process queue.", e);
-        } finally {
-            cleanSessionIfNeeded(session);
+            LOGGER.info("Unable to find storage for message '" + message + "'.");
+            message.acknowledge(); // Prevent JMS queue fill up.
+        } catch (JMSException e) {
+            // Ignored
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Unable to acknowledge message.", e);
+            }
         }
-        return empty;
+        return EMPTY;
     }
 
     @Override
