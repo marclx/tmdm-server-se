@@ -2326,11 +2326,13 @@ public class Util {
         StringBuilder buffer = new StringBuilder();
         buffer.append("<AutoIncrement>");
         buffer.append("<id>AutoIncrement</id>");
-        for (Entry entry : p.entrySet()) {
-            buffer.append("<entry>");
-            buffer.append("<key>").append(entry.getKey()).append("</key>");
-            buffer.append("<value>").append(entry.getValue()).append("</value>");
-            buffer.append("</entry>");
+        if (p != null) {
+            for (Entry entry : p.entrySet()) {
+                buffer.append("<entry>");
+                buffer.append("<key>").append(entry.getKey()).append("</key>");
+                buffer.append("<value>").append(entry.getValue()).append("</value>");
+                buffer.append("</entry>");
+            }
         }
         buffer.append("</AutoIncrement>");
         return buffer.toString();

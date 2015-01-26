@@ -15,12 +15,9 @@ import org.hibernate.search.util.ContextHelper;
 import javax.ejb.EJBException;
 import javax.ejb.MessageDrivenBean;
 import javax.ejb.MessageDrivenContext;
-import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.ObjectMessage;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * This class is needed in case of clustering: default option can't handle well full text indexing. This class allows
@@ -31,8 +28,6 @@ import java.util.Map;
 public class JMSFullTextController extends AbstractJMSHibernateSearchController implements MessageDrivenBean {
 
     public static final Logger        LOGGER            = Logger.getLogger(JMSFullTextController.class);
-
-    private final Map<Class, Storage> classStorageCache = new HashMap<Class, Storage>();
 
     @Override
     protected Session getSession() {
@@ -51,74 +46,76 @@ public class JMSFullTextController extends AbstractJMSHibernateSearchController 
 
     @Override
     public void onMessage(Message message) {
+        LOGGER.info("Processing work...");
         if (!(message instanceof ObjectMessage)) {
             LOGGER.error("Incorrect message type: '" + message.getClass() + "'.");
             return;
         }
-        ObjectMessage objectMessage = (ObjectMessage) message;
-        List<LuceneWork> queue;
-        try {
-            queue = (List<LuceneWork>) objectMessage.getObject();
-        } catch (JMSException e) {
-            LOGGER.error("Unable to retrieve object from message: " + message.getClass(), e);
-            return;
-        } catch (ClassCastException e) {
-            LOGGER.error("Illegal object retrieved from message", e);
-            return;
-        }
-        Runnable worker = getWorker(queue);
+        Runnable worker = getWorker((ObjectMessage) message);
         worker.run();
     }
 
-    private Runnable getWorker(List<LuceneWork> queue) {
-        LuceneWork luceneWork = queue.get(0);
-        Class entityClass = luceneWork.getEntityClass();
+    private Runnable getWorker(ObjectMessage message) {
         StorageAdmin admin = ServerContext.INSTANCE.get().getStorageAdmin();
         String[] containers = admin.getAll(null);
         Storage storage = null;
-        Storage cachedStorage = classStorageCache.get(entityClass);
-        if (cachedStorage != null) {
-            // Redo a lookup by name in case storage was restarted in the mean time
-            storage = admin.get(cachedStorage.getName(), StorageType.MASTER, null);
-        }
+        StorageClassLoader classLoader = null;
         for (String container : containers) {
             storage = admin.get(container, StorageType.MASTER, null);
-            if (storage instanceof HibernateStorage) {
+            if (storage.asInternal() instanceof HibernateStorage) {
+                HibernateStorage hibernateStorage = (HibernateStorage) storage.asInternal();
+                classLoader = hibernateStorage.getClassLoader();
+                ClassLoader previous = Thread.currentThread().getContextClassLoader();
                 try {
-                    HibernateStorage hibernateStorage = (HibernateStorage) storage;
-                    Class<?> aClass = hibernateStorage.getClassLoader().findClass(entityClass.getName());
-                    classStorageCache.put(aClass, hibernateStorage);
+                    Thread.currentThread().setContextClassLoader(classLoader);
+                    message.getObject();
                     storage = hibernateStorage;
-                    break;
-                } catch (ClassNotFoundException e) {
-                    // Ignored, but log it in debug anyway
+                    break; // Found storage and class loader, exit.
+                } catch (Exception e) {
+                    // Ignored
                     if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("Discard storage '" + storage.getName() + "'.", e);
+                        LOGGER.debug("Ignored exception during look up for storage.", e);
                     }
+                } finally {
+                    Thread.currentThread().setContextClassLoader(previous);
                 }
             }
         }
-        if (storage == null) {
-            LOGGER.error("Unable to find storage for class '" + entityClass + "'. Discarding index update.");
-            return new Runnable() {
+        Runnable empty = new Runnable() {
 
-                @Override
-                public void run() {
-                    // Nothing to do.
-                }
-            };
+            @Override
+            public void run() {
+                // Nothing to do.
+            }
+        };
+        if (storage == null || classLoader == null) {
+            LOGGER.error("Unable to find storage for class '" + message + "'. Discarding index update.");
+            return empty;
         }
         StorageTransaction transaction = storage.newStorageTransaction();
         Session session = ((HibernateStorageTransaction) transaction).getSession();
         session.beginTransaction();
-        Runnable processor = null;
+        final ClassLoader previous = Thread.currentThread().getContextClassLoader();
         try {
+            Thread.currentThread().setContextClassLoader(classLoader);
             SearchFactoryImplementor factory = ContextHelper.getSearchFactory(session);
-            processor = factory.getBackendQueueProcessorFactory().getProcessor(queue);
+            final Runnable processor = factory.getBackendQueueProcessorFactory().getProcessor((List<LuceneWork>) message.getObject());
+            return new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        processor.run();
+                    } finally {
+                        Thread.currentThread().setContextClassLoader(previous);
+                    }
+                }
+            };
+        } catch (Exception e) {
+            LOGGER.error("Unable to process queue.", e);
         } finally {
             cleanSessionIfNeeded(session);
         }
-        return processor;
+        return empty;
     }
 
     @Override

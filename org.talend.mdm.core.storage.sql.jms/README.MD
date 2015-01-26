@@ -104,6 +104,7 @@ Adds following content in jbossmq-destinations-service.xml (.../server/default/d
 <property name="hibernate.search.worker.backend">jms</property>
 <property name="hibernate.search.worker.jms.connection_factory">/ConnectionFactory</property>
 <property name="hibernate.search.worker.jndi.java.naming.provider.url">jnp://localhost:1199</property> <!-- (1) -->
+<property name="hibernate.search.worker.jms.queue">queue/jms/mdm/fulltext</property>
 ```
 
 In (1), this is the RMI port of the *master* server.
