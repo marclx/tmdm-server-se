@@ -222,17 +222,18 @@ public class BrowseRecordsController extends Controller {
                                 && ItemsListPanel.getInstance().getCurrentQueryModel().getModel().getConceptName()
                                         .equals(itemBean.getConcept());
 
-                        // ItemsListPanel need to refresh when only isOutMost = false and isHierarchyCall = false
-                        if (!detailToolBar.isOutMost() && !detailToolBar.isHierarchyCall() && !detailToolBar.isFkToolBar()) {
-                            if (detailToolBar.getFromApp() != null
-                                    && (("".equals(detailToolBar.getFromApp())) || detailToolBar.getFromApp().startsWith("Journal"))) {//$NON-NLS-1$ //$NON-NLS-2$
-                                AppEvent event = new AppEvent(BrowseRecordsEvents.ViewItem, itemBean);
-                                event.setData("isStaging", false); //$NON-NLS-1$
-                                event.setData("fromApp", detailToolBar.getFromApp()); //$NON-NLS-1$
-                                Dispatcher.forwardEvent(event);
-                            } else if (isSameConcept && detailToolBar.getType() == ItemDetailToolBar.TYPE_DEFAULT) {
-                                itemBean.setIds(result.getReturnValue());
-                                ItemsListPanel.getInstance().refreshGrid(itemBean);
+                        if (detailToolBar.isOutMost()) {
+                            refreshDetailPanel(detailToolBar, itemBean);
+                        } else {
+                            // ItemsListPanel need to refresh when only isOutMost = false and isHierarchyCall = false
+                            if (!detailToolBar.isHierarchyCall()) {
+                                if (detailToolBar.getFromApp() != null
+                                        && (("".equals(detailToolBar.getFromApp())) || detailToolBar.getFromApp().startsWith("Journal"))) {//$NON-NLS-1$ //$NON-NLS-2$
+                                    refreshDetailPanel(detailToolBar, itemBean);
+                                } else if (isSameConcept && detailToolBar.getType() == ItemDetailToolBar.TYPE_DEFAULT) {
+                                    itemBean.setIds(result.getReturnValue());
+                                    ItemsListPanel.getInstance().refreshGrid(itemBean);
+                                }
                             }
                         }
 
@@ -437,5 +438,12 @@ public class BrowseRecordsController extends Controller {
                         }
                     });
         }
+    }
+
+    private void refreshDetailPanel(ItemDetailToolBar detailToolBar, ItemBean itemBean) {
+        AppEvent event = new AppEvent(BrowseRecordsEvents.ViewItem, itemBean);
+        event.setData("isStaging", false); //$NON-NLS-1$
+        event.setData("fromApp", detailToolBar.getFromApp()); //$NON-NLS-1$
+        Dispatcher.forwardEvent(event);
     }
 }

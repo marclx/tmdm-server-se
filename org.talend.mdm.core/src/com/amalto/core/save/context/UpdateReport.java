@@ -89,9 +89,14 @@ class UpdateReport implements DocumentSaver {
     }
     
     private boolean isInvokeBeforeSaving(DocumentSaverContext context) {
-        if (context instanceof ReportDocumentSaverContext && ((ReportDocumentSaverContext)context).getDelegate() instanceof StorageSaver) {
-            StorageSaver saver = (StorageSaver) ((ReportDocumentSaverContext)context).getDelegate();
-            return saver.isInvokeBeforeSaving();
+        if (context instanceof ReportDocumentSaverContext) {
+            if(((ReportDocumentSaverContext)context).getDelegate() instanceof StorageSaver){
+                StorageSaver saver = (StorageSaver) ((ReportDocumentSaverContext)context).getDelegate();
+                return saver.isInvokeBeforeSaving();
+            } else if (((ReportDocumentSaverContext)context).getDelegate() instanceof UserContext){
+                UserContext saver = (UserContext) ((ReportDocumentSaverContext)context).getDelegate();
+                return saver.isInvokeBeforeSaving();
+            }
         }
         return false;
     }

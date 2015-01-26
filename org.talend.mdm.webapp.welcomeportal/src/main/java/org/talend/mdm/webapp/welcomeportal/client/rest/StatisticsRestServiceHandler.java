@@ -38,6 +38,8 @@ public class StatisticsRestServiceHandler {
 
     private static StatisticsRestServiceHandler handler;
 
+    private final int DEFAULT_RESULT_SIZE = 5;
+
     private StatisticsRestServiceHandler() {
         client = new ClientResourceWrapper();
     }
@@ -84,7 +86,8 @@ public class StatisticsRestServiceHandler {
             throw new IllegalArgumentException("Data container required"); //$NON-NLS-1$
         }
 
-        client.init(Method.GET, restServiceUrl + '/' + "journal" + '/' + dataContainer + "?top=5&timeframe=" + configModel.getSettingValue()); //$NON-NLS-1 //$NON-NLS-2
+        client.init(Method.GET,
+                restServiceUrl + '/' + "journal" + '/' + dataContainer + "?top=0&timeframe=" + configModel.getSettingValue()); // NON-NLS-2
         client.setCallback(new ResourceSessionAwareCallbackHandler() {
 
             @Override
@@ -92,8 +95,14 @@ public class StatisticsRestServiceHandler {
 
                 JsonRepresentation jsonRepresentation = RestServiceHelper.getJsonRepresentationFromResponse(response);
                 if (jsonRepresentation != null) {
-                    JSONValue jsonValue = jsonRepresentation.getJsonObject().get("journal"); //$NON-NLS-1$
-                    callback.onSuccess(jsonValue.isArray());
+                    JSONArray array = new JSONArray();
+                    JSONValue jsonValue = jsonRepresentation.getJsonObject().get("journal"); //$NON-NLS-1$                    
+                    JSONArray resutArray = jsonValue.isArray();
+                    int count = resutArray.size() < DEFAULT_RESULT_SIZE ? resutArray.size() : DEFAULT_RESULT_SIZE;
+                    for (int i = 0; i < count; i++) {
+                        array.set(i, resutArray.get(i));
+                    }
+                    callback.onSuccess(array);
                 }
 
             }
@@ -108,7 +117,7 @@ public class StatisticsRestServiceHandler {
             throw new IllegalArgumentException("Data container required"); //$NON-NLS-1$
         }
 
-        client.init(Method.GET, restServiceUrl + '/' + "matching" + '/' + dataContainer + "?top=" + configModel.getSettingValue()); //$NON-NLS-1 //$NON-NLS-2
+        client.init(Method.GET, restServiceUrl + '/' + "matching" + '/' + dataContainer + "?top=" + configModel.getSettingValue()); // NON-NLS-2
         client.setCallback(new ResourceSessionAwareCallbackHandler() {
 
             @Override
@@ -127,7 +136,7 @@ public class StatisticsRestServiceHandler {
     }
 
     public void getRoutingEventStats(ConfigModel configModel, final SessionAwareAsyncCallback<JSONArray> callback) {
-        client.init(Method.GET, restServiceUrl + '/' + "events" + "?top=5&timeframe=" + configModel.getSettingValue()); //$NON-NLS-1 //$NON-NLS-2
+        client.init(Method.GET, restServiceUrl + '/' + "events" + "?top=5&timeframe=" + configModel.getSettingValue()); // NON-NLS-2
         client.setCallback(new ResourceSessionAwareCallbackHandler() {
 
             @Override
