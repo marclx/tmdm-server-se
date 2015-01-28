@@ -46,7 +46,7 @@ bigger impacts than "jms" option ("jgroups" implies to enable JBoss in cluster m
 
 This solution uses the JBoss JMS of the Master MDM server.
 
-### In MASTER
+### In MASTER node
 
 * Add a queue "jms/mdm/fulltext"
 Adds following content in jbossmq-destinations-service.xml (.../server/default/deploy/jms):
@@ -85,26 +85,46 @@ Adds following content in jbossmq-destinations-service.xml (.../server/default/d
 
 ```
 <property name="hibernate.show_sql">false</property>
-<property name="hibernate.search.default.sourceBase">/home/fhuaulme/tmp/Talend-MDMServer-cluster/data/indexes/MySQL-Default</property>
-<property name="hibernate.search.default.indexBase">/home/fhuaulme/tmp/Talend-MDMServer-20141207_1530-V5.6.1_node1/jboss-4.2.2.GA/server/default/data/indexes/MySQL-Default</property>
-<property name="hibernate.search.default.refresh">15</property>
+<property name="hibernate.search.default.sourceBase">/home/fhuaulme/tmp/Talend-MDMServer-cluster/data/indexes/MySQL-Default</property> <!-- (1) -->
+<property name="hibernate.search.default.indexBase">/home/fhuaulme/tmp/Talend-MDMServer-20141207_1530-V5.6.1_node1/jboss-4.2.2.GA/server/default/data/indexes/MySQL-Default</property> <!-- (2) -->
+<property name="hibernate.search.default.refresh">1800</property> <!-- (3) -->
 <property name="hibernate.search.default.directory_provider">org.hibernate.search.store.FSMasterDirectoryProvider</property>
 ```
 
-### In SLAVE
+(1): you have a common directory (shared by both master and slave nodes), where slave nodes will refresh their local copy.
+(2): the master local index.
+(3): Every 1800 seconds (30 min), master polls index from (1) and copy to (2). Documentation of Hibernate indicates
+time period should be around twice the time needed to copy content from (1) to (2). As index size varies from an environment
+to another, advising a value is hard.
+
+* Restart master node. You need to have master node up before starting slave nodes
+
+### In SLAVE node
 
 * Modify datasources.xml (jboss_dir/server/default/conf):
 
 ```
 <property name="hibernate.show_sql">false</property>
-<property name="hibernate.search.default.sourceBase">/home/fhuaulme/tmp/Talend-MDMServer-cluster/data/indexes/MySQL-Default</property>
-<property name="hibernate.search.default.indexBase">/home/fhuaulme/tmp/Talend-MDMServer-20141207_1530-V5.6.1_node2/jboss-4.2.2.GA/server/default/data/indexes/MySQL-Default</property>
-<property name="hibernate.search.default.refresh">1800</property>
-<property name="hibernate.search.default.directory_provider">org.hibernate.search.store.FSSlaveDirectoryProvider</property>
-<property name="hibernate.search.worker.backend">jms</property>
-<property name="hibernate.search.worker.jms.connection_factory">/ConnectionFactory</property>
-<property name="hibernate.search.worker.jndi.java.naming.provider.url">jnp://localhost:1199</property> <!-- (1) -->
-<property name="hibernate.search.worker.jms.queue">queue/jms/mdm/fulltext</property>
+<property name="hibernate.search.default.sourceBase">/home/fhuaulme/tmp/Talend-MDMServer-cluster/data/indexes/MySQL-Default</property> <!-- (1) -->
+<property name="hibernate.search.default.indexBase">/home/fhuaulme/tmp/Talend-MDMServer-20141207_1530-V5.6.1_node2/jboss-4.2.2.GA/server/default/data/indexes/MySQL-Default</property> <!-- (2) -->
+<property name="hibernate.search.default.refresh">1800</property> <!-- (3) -->
+<property name="hibernate.search.default.directory_provider">org.hibernate.search.store.FSSlaveDirectoryProvider</property> <!-- (4) -->
+<property name="hibernate.search.worker.backend">jms</property> <!-- (5) -->
+<property name="hibernate.search.worker.jms.connection_factory">/ConnectionFactory</property> <!-- (5) -->
+<property name="hibernate.search.worker.jndi.java.naming.provider.url">jnp://localhost:1199</property> <!-- (5) -->
+<property name="hibernate.search.worker.jms.queue">queue/jms/mdm/fulltext</property> <!-- (5) -->
 ```
 
-In (1), this is the RMI port of the *master* server.
+(1): you have a common directory (shared by both master and slave nodes), slave node gets the latest index from this location.
+(2): the slave local index.
+(3): Every 1800 seconds (30 min), slave polls index from (1) and copy to (2). Documentation of Hibernate indicates
+time period should be around twice the time needed to copy content from (1) to (2). As index size varies from an environment
+to another, advising a value is hard.
+(4) Be careful about the class name.
+(5) JMS related properties: "jms" for backend specifies to Hibernate Search that any index update should be pushed to the
+queue specified in these properties.
+Please note the property "hibernate.search.worker.jndi.java.naming.provider.url" uses the RMI port of the *master* server.
+
+* Make sure master node is up, since slave node will try to connect to jnp://localhost:1199.
+
+* Restart slave node.

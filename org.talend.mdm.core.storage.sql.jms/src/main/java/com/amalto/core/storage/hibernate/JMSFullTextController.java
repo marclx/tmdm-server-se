@@ -57,13 +57,18 @@ public class JMSFullTextController extends AbstractJMSHibernateSearchController 
 
     @Override
     public void onMessage(Message message) {
-        LOGGER.info("Processing work...");
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Processing work (message = '" + message + "')...");
+        }
         if (!(message instanceof ObjectMessage)) {
             LOGGER.error("Incorrect message type: '" + message.getClass() + "' (expected: " + ObjectMessage.class.getName()
                     + ").");
             return;
         }
         getWorker((ObjectMessage) message).run();
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Done processing work (message = '" + message + "').");
+        }
     }
 
     private static Runnable getWorker(ObjectMessage message) {
