@@ -103,6 +103,11 @@ public class SaverSession {
     public void begin(String dataCluster) {
         begin(dataCluster, getDefaultCommitter());
     }
+    
+    public void begin(String dataCluster, boolean needAutoGenPK) {
+        this.hasMetAutoIncrement = needAutoGenPK;
+        begin(dataCluster, getDefaultCommitter());
+    }
 
     protected Committer getDefaultCommitter() {
         if (defaultCommitter == null) {
