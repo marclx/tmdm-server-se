@@ -96,8 +96,6 @@ public class RDBMSDataSource implements DataSource {
 
     private boolean isShared;
 
-    private final int DEFAULT_LIMITED_MAX_LENGTH = 255;
-
     public RDBMSDataSource(RDBMSDataSource dataSource) {
         caseSensitiveSearch = dataSource.caseSensitiveSearch;
         name = dataSource.name;

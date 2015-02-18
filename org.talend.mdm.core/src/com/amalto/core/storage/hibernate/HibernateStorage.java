@@ -513,7 +513,13 @@ public class HibernateStorage implements Storage {
                     }
                 }
             }
-            tableResolver = new StorageTableResolver(databaseIndexedFields, dataSource.getNameMaxLength());
+            switch (dataSource.getDialectName()) {
+                case ORACLE_10G:
+                    tableResolver = new OracleStorageTableResolver(databaseIndexedFields, dataSource.getNameMaxLength());
+                    break;
+                default:
+                    tableResolver = new StorageTableResolver(databaseIndexedFields, dataSource.getNameMaxLength());
+            }
             storageClassLoader.setTableResolver(tableResolver);
             // Master, Staging and System share same class creator.
             switch (storageType) {
