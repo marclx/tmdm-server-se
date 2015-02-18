@@ -109,7 +109,7 @@ public class LoadServlet extends HttpServlet {
         DocumentSaverContext context = contextFactory.createBulkLoad(dataClusterName, dataModelName, keyMetadata, request.getInputStream(), loadAction, server);
         DocumentSaver saver = context.createSaver();
         try {
-            session.begin(dataClusterName, needAutoGenPK);
+            session.begin(dataClusterName);
             saver.save(session, context);
             session.end();
             // End the load (might persist counter state in case of autogen pk).
