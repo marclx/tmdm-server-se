@@ -53,6 +53,10 @@ public class StorageFullTextTest extends StorageTestCase {
                 + "    <Name>Product family #1</Name>\n" + "</ProductFamily>"));
         allRecords.add(factory.read("1", repository, productFamily, "<ProductFamily>\n" + "    <Id>2</Id>\n"
                 + "    <Name>Product family #2</Name>\n" + "</ProductFamily>"));
+        allRecords.add(factory.read("1", repository, productFamily, "<ProductFamily>\n" + "    <Id>3</Id>\n"
+                + "    <Name>Product family #3</Name>\n" + "</ProductFamily>"));
+        allRecords.add(factory.read("1", repository, productFamily, "<ProductFamily>\n" + "    <Id>4</Id>\n"
+                + "    <Name>Product family #4</Name>\n" + "</ProductFamily>"));
         allRecords.add(factory.read("1", repository, product, "<Product>\n" + "    <Id>1</Id>\n" + "    <Name>talend</Name>\n"
                 + "    <ShortDescription>Short description word</ShortDescription>\n"
                 + "    <LongDescription>Long description</LongDescription>\n" + "    <Price>10</Price>\n" + "    <Features>\n"
@@ -195,6 +199,41 @@ public class StorageFullTextTest extends StorageTestCase {
                 currentId = id;
             }
         } finally {
+            records.close();
+        }
+    }
+    
+    public void testSimpleSearchOrderByWithContainsCondition() throws Exception {
+        // Order by "Id" field
+        UserQueryBuilder qb = from(productFamily).where(contains(productFamily.getField("Name"), "Product"))
+                .orderBy(productFamily.getField("Id"), OrderBy.Direction.DESC);
+
+        StorageResults records = storage.fetch(qb.getSelect());
+        try {
+            assertEquals(4, records.getCount());
+            int currentId = Integer.MAX_VALUE;
+            for (DataRecord record : records) {
+                Integer id = Integer.parseInt((String) record.get("Id"));
+                assertTrue(id < currentId);
+                currentId = id;
+            }            
+        }  finally {
+            records.close();
+        }
+        // Order by "Name" field
+        qb = from(productFamily).where(contains(productFamily.getField("Name"), "Product"))
+                .orderBy(productFamily.getField("Name"), OrderBy.Direction.DESC);
+
+        records = storage.fetch(qb.getSelect());
+        try {
+            assertEquals(4, records.getCount());
+            int currentId = Integer.MAX_VALUE;
+            for (DataRecord record : records) {
+                Integer id = Integer.parseInt((String) record.get("Id"));
+                assertTrue(id < currentId);
+                currentId = id;
+            }            
+        }  finally {
             records.close();
         }
     }
